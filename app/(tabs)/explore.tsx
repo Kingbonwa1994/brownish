@@ -1,109 +1,97 @@
-import { StyleSheet, Image, Platform } from 'react-native';
+import React from "react";
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Linking, Alert } from "react-native";
+import { useRouter } from "expo-router";
+import { FontAwesome5 } from "@expo/vector-icons";
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+const stakeholders = [
+    { id: 1, name: "John Doe", role: "Music Producer", phone: "1234567890" },
+    { id: 2, name: "Jane Smith", role: "Event Organizer", phone: "0987654321" },
+];
 
-export default function TabTwoScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user's current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
-  );
-}
+const ExploreScreen = ({ isSubscribed }: { isSubscribed: boolean }) => {
+    const router = useRouter();
+
+    const handleConnect = (phone: string) => {
+        if (!isSubscribed) {
+            Alert.alert("Subscription Required", "You must be subscribed to connect with stakeholders.");
+            return;
+        }
+        Linking.openURL(`https://wa.me/${phone}`);
+    };
+
+    return (
+        <ScrollView style={styles.container}>
+            <Text style={styles.title}>Connect with Industry Stakeholders</Text>
+            {stakeholders.map((stakeholder) => (
+                <View key={stakeholder.id} style={styles.card}>
+                    <FontAwesome5 name="user-tie" size={24} color="#fff" />
+                    <View style={styles.cardContent}>
+                        <Text style={styles.cardTitle}>{stakeholder.name}</Text>
+                        <Text style={styles.cardSubtitle}>{stakeholder.role}</Text>
+                    </View>
+                    <TouchableOpacity style={styles.whatsappButton} onPress={() => handleConnect(stakeholder.phone)}>
+                        <FontAwesome5 name="whatsapp" size={24} color="#25D366" />
+                    </TouchableOpacity>
+                </View>
+            ))}
+            {!isSubscribed && (
+                <TouchableOpacity style={styles.subscribeButton} onPress={() => Alert.alert("Subscribe", "Navigate to subscription page")}> 
+                    <Text style={styles.subscribeText}>Subscribe to Connect</Text>
+                </TouchableOpacity>
+            )}
+        </ScrollView>
+    );
+};
+
+export default ExploreScreen;
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+    container: {
+        flex: 1,
+        padding: 20,
+        backgroundColor: "#121212",
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: "bold",
+        textAlign: "center",
+        marginBottom: 20,
+        color: "#e0e0e0",
+    },
+    card: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#333",
+        padding: 15,
+        borderRadius: 8,
+        marginVertical: 10,
+    },
+    cardContent: {
+        flex: 1,
+        marginLeft: 15,
+    },
+    cardTitle: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    cardSubtitle: {
+        color: "#bbb",
+        fontSize: 14,
+    },
+    whatsappButton: {
+        padding: 10,
+    },
+    subscribeButton: {
+        backgroundColor: "#673ab7",
+        padding: 15,
+        borderRadius: 8,
+        alignItems: "center",
+        marginTop: 20,
+    },
+    subscribeText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
+    },
 });

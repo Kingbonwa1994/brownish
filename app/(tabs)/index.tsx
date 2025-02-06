@@ -1,140 +1,137 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, Button, Alert, TouchableOpacity, StyleSheet } from "react-native";
-import { signUp } from "../../lib/appwrite"; // Import the signup function
+import React from "react";
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ImageBackground, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
+import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
-const OnboardingScreen = ({ navigation }: any) => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [role, setRole] = useState<"artist" | "stakeholder" | null>(null);
-    const [additionalData, setAdditionalData] = useState<any>({});
+const { width } = Dimensions.get("window");
 
-
-
+const HomeScreen = () => {
     const router = useRouter();
-    const handleOnboarding = async () => {
-        if (!role) {
-            Alert.alert("Error", "Please select a role.");
-            return;
-        }
-
-        const result = await signUp(email, password, role, additionalData);
-        if (result.success) {
-            router.replace(role === "artist" ? "/(tabs)" : "/+not-found");
-        } else {
-            Alert.alert("Error", result.error);
-        }
-    };
 
     return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Sign Up</Text>
+        <ScrollView style={styles.container}>
+            {/* Hero Section */}
+            <ImageBackground
+                source={{ uri: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" }}
+                style={styles.heroSection}
+                imageStyle={{ borderRadius: 12 }}
+            >
+                <LinearGradient
+                    colors={["rgba(0, 0, 0, 0.5)", "rgba(0, 0, 0, 0.8)"]}
+                    style={styles.heroOverlay}
+                >
+                    <Text style={styles.heroTitle}>Welcome to NORT</Text>
+                    <Text style={styles.heroSubtitle}>Your gateway to music, networking, and exclusive content</Text>
+                </LinearGradient>
+            </ImageBackground>
 
-            <Text style={styles.label}>Enter Email:</Text>
-            <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="Email" autoCapitalize="none" />
-
-            <Text style={styles.label}>Enter Password:</Text>
-            <TextInput style={styles.input} value={password} onChangeText={setPassword} placeholder="Password" secureTextEntry />
-
-            <Text style={styles.label}>Select Role:</Text>
-            <View style={styles.roleContainer}>
-                <TouchableOpacity style={[styles.roleButton, role === "artist" && styles.selectedRole]} onPress={() => setRole("artist")}>
-                    <Text style={styles.roleText}>Artist</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.roleButton, role === "stakeholder" && styles.selectedRole]} onPress={() => setRole("stakeholder")}>
-                    <Text style={styles.roleText}>Stakeholder</Text>
-                </TouchableOpacity>
-            </View>
-
-            {role === "artist" && (
-                <>
-                    <Text style={styles.label}>Stage Name:</Text>
-                    <TextInput style={styles.input} onChangeText={(text) => setAdditionalData({ ...additionalData, stage_name: text })} placeholder="Stage Name" />
-                    
-                    <Text style={styles.label}>Genre:</Text>
-                    <TextInput style={styles.input} onChangeText={(text) => setAdditionalData({ ...additionalData, genre: text })} placeholder="Genre" />
-                </>
-            )}
-
-            {role === "stakeholder" && (
-                <>
-                    <Text style={styles.label}>Company Name:</Text>
-                    <TextInput style={styles.input} onChangeText={(text) => setAdditionalData({ ...additionalData, company_name: text })} placeholder="Company Name" />
-                    
-                    <Text style={styles.label}>Industry:</Text>
-                    <TextInput style={styles.input} onChangeText={(text) => setAdditionalData({ ...additionalData, industry: text })} placeholder="Industry" />
-                </>
-            )}
-
-            <TouchableOpacity style={styles.submitButton} onPress={handleOnboarding}>
-                <Text style={styles.submitText}>Complete Sign-Up</Text>
+            {/* Music Submission Section */}
+            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)")}>
+                <LinearGradient
+                    colors={["#6a11cb", "#2575fc"]}
+                    style={styles.cardGradient}
+                >
+                    <MaterialIcons name="library-music" size={40} color="#fff" />
+                    <Text style={styles.cardText}>Submit Music to Radio Stations</Text>
+                </LinearGradient>
             </TouchableOpacity>
-        </View>
+
+            {/* Networking Section */}
+            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)")}>
+                <LinearGradient
+                    colors={["#ff416c", "#ff4b2b"]}
+                    style={styles.cardGradient}
+                >
+                    <FontAwesome5 name="users" size={40} color="#fff" />
+                    <Text style={styles.cardText}>Connect with Industry Stakeholders</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Ticket Marketplace */}
+            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)")}>
+                <LinearGradient
+                    colors={["#00c6ff", "#0072ff"]}
+                    style={styles.cardGradient}
+                >
+                    <MaterialIcons name="confirmation-number" size={40} color="#fff" />
+                    <Text style={styles.cardText}>Buy & Sell Event Tickets</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Behind the Scenes Content */}
+            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)")}>
+                <LinearGradient
+                    colors={["#f09819", "#edde5d"]}
+                    style={styles.cardGradient}
+                >
+                    <FontAwesome5 name="video" size={40} color="#fff" />
+                    <Text style={styles.cardText}>Watch Behind-the-Scenes Sessions</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+
+            {/* Subscription Section */}
+            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)")}>
+                <LinearGradient
+                    colors={["#673ab7", "#9c27b0"]}
+                    style={styles.cardGradient}
+                >
+                    <MaterialIcons name="subscriptions" size={40} color="#fff" />
+                    <Text style={styles.cardText}>Manage Your Subscription</Text>
+                </LinearGradient>
+            </TouchableOpacity>
+        </ScrollView>
     );
 };
 
-export default OnboardingScreen;
+export default HomeScreen;
 
-// Styles
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: "center",
         padding: 20,
-        backgroundColor: "#f8f8f8",
+        backgroundColor: "#121212",
     },
-    title: {
-        fontSize: 24,
-        fontWeight: "bold",
-        textAlign: "center",
+    heroSection: {
+        width: width - 40,
+        height: 200,
+        borderRadius: 12,
         marginBottom: 20,
-        color: "#333",
+        overflow: "hidden",
     },
-    label: {
-        fontSize: 16,
-        fontWeight: "bold",
-        marginTop: 10,
-        marginBottom: 5,
-        color: "#555",
-    },
-    input: {
-        backgroundColor: "#fff",
-        padding: 10,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: "#ddd",
-        marginBottom: 10,
-    },
-    roleContainer: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginBottom: 15,
-    },
-    roleButton: {
+    heroOverlay: {
         flex: 1,
-        padding: 12,
-        marginHorizontal: 5,
-        backgroundColor: "#ddd",
-        borderRadius: 8,
+        justifyContent: "center",
         alignItems: "center",
+        padding: 20,
     },
-    selectedRole: {
-        backgroundColor: "#4CAF50",
-    },
-    roleText: {
-        color: "#333",
+    heroTitle: {
+        fontSize: 28,
         fontWeight: "bold",
+        color: "#fff",
+        textAlign: "center",
     },
-    submitButton: {
-        backgroundColor: "#007BFF",
-        padding: 15,
-        borderRadius: 8,
+    heroSubtitle: {
+        fontSize: 16,
+        color: "#e0e0e0",
+        textAlign: "center",
+        marginTop: 10,
+    },
+    card: {
+        borderRadius: 12,
+        marginVertical: 10,
+        overflow: "hidden",
+    },
+    cardGradient: {
+        flexDirection: "row",
         alignItems: "center",
-        marginTop: 20,
+        padding: 20,
     },
-    submitText: {
+    cardText: {
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
+        marginLeft: 15,
+        flex: 1,
     },
 });

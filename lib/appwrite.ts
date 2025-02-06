@@ -43,7 +43,7 @@ export const signUp = async (
     const user = await account.create(ID.unique(), email, password); // Password is hashed by appwrite
 
     // Step 1.5: Sign In (Optional, but often useful)
-    await account.createEmailSession(email, password); // Sign the user in after creation
+    await account.createEmailPasswordSession(email, password); // Sign the user in after creation
 
     const userId = user.$id;
 
@@ -115,3 +115,5 @@ export const uploadReel = async (artistId: string, reelUrl: string) => {
 function isValidEmail(email: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
+
+//
