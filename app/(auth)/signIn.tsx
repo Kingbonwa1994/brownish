@@ -141,13 +141,14 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
         backgroundColor: "#121212",
-        // Add these lines to center content:
-        // justifyContent: 'center', // Vertically center
+        
+        justifyContent: 'center', // Vertically center
         // alignItems: 'center',     // Horizontally center
       },
+
     heroSection: {
-        width: width - 40,
-        height: 200,
+        width: width,
+        
         borderRadius: 12,
         marginBottom: 20,
         overflow: "hidden",
