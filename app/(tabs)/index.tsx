@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, ImageBackground, Dimensions } from "react-native";
+import { Text, TouchableOpacity, ScrollView, StyleSheet, ImageBackground, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { FontAwesome5, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -27,7 +27,7 @@ const HomeScreen = () => {
             </ImageBackground>
 
             {/* Music Submission Section */}
-            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)")}>
+            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)/submit")}>
                 <LinearGradient
                     colors={["#6a11cb", "#2575fc"]}
                     style={styles.cardGradient}
@@ -38,7 +38,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
 
             {/* Networking Section */}
-            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)")}>
+            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)/explore")}>
                 <LinearGradient
                     colors={["#ff416c", "#ff4b2b"]}
                     style={styles.cardGradient}
@@ -49,7 +49,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
 
             {/* Ticket Marketplace */}
-            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)")}>
+            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)/tickets")}>
                 <LinearGradient
                     colors={["#00c6ff", "#0072ff"]}
                     style={styles.cardGradient}
@@ -60,7 +60,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
 
             {/* Behind the Scenes Content */}
-            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)")}>
+            <TouchableOpacity style={styles.card} onPress={() => router.push("/(tabs)/reels")}>
                 <LinearGradient
                     colors={["#f09819", "#edde5d"]}
                     style={styles.cardGradient}

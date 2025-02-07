@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, Dimensions, TextInput, Modal } from "react-native";
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, TextInput, Modal } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 
-const { width } = Dimensions.get("window");
+
 
 const ticketTypes = [
     { id: "1", type: "General", event: "Concert A", price: 50 },
