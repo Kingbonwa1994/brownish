@@ -1,16 +1,14 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ImageBackground, Dimensions, ScrollView } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground, Dimensions, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import { AntDesign, FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useAuth } from "@/context/AuthContext";
 
 const { width } = Dimensions.get("window");
 
 // Placeholder authentication functions
-const signIn = async (email: string, password: string) => {
-    console.log("Sign in with email:", email);
-    return { success: false, error: "Function not implemented yet" };
-};
+
 
 const signInWithGoogle = async () => {
     console.log("Sign in with Google");
@@ -29,18 +27,32 @@ const SignInScreen = ({ navigation }: any) => {
     const [password, setPassword] = useState("");
     const router = useRouter();
 
-    const handleSignIn = async () => {
-        if (!email || !password) {
-            Alert.alert("Error", "Please enter your email and password.");
-            return;
-        }
+    const { setUser } = useAuth();
+    
 
-        const result = await signIn(email, password);
-        if (result.success) {
-            router.replace("/(tabs)");
-        } else {
-            Alert.alert("Error", result.error);
-        }
+    const handleSignIn = async () => {
+        // if (!email || !password) {
+        //     Alert.alert("Error", "Please enter your email and password.");
+        //     return;
+        // }
+
+        // const result = await signIn(email, password);
+        // if (result.success) {
+        //     router.replace("/(tabs)");
+        // } else {
+        //     Alert.alert("Error", result.error);
+
+        // }
+
+        //simulate a successful login
+        setUser({
+            user_id: "123",
+            role: "artist",
+            email: "pWl2R@example.com",
+            
+
+        })
+        router.back()
     };
 
     return (
@@ -129,7 +141,10 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: 20,
         backgroundColor: "#121212",
-    },
+        // Add these lines to center content:
+        // justifyContent: 'center', // Vertically center
+        // alignItems: 'center',     // Horizontally center
+      },
     heroSection: {
         width: width - 40,
         height: 200,

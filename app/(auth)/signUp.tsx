@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, ScrollView, ImageBackground, Dimensions } from "react-native";
-import { signUp } from "../../lib/appwrite"; // Import the signup function
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ImageBackground, Dimensions } from "react-native";
+//import { signUp } from "../../lib/appwrite"; // Import the signup function
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { useAuth } from "@/context/AuthContext";
 
 const { width } = Dimensions.get("window");
 
@@ -13,20 +14,27 @@ const OnboardingScreen = ({ navigation }: any) => {
     const [additionalData, setAdditionalData] = useState<any>({});
 
     const router = useRouter();
-
-    const handleOnboarding = async () => {
-        if (!role) {
-            Alert.alert("Error", "Please select a role.");
-            return;
-        }
-
-        const result = await signUp(email, password, role, additionalData);
-        if (result.success) {
-            router.replace(role === "artist" ? "/(tabs)" : "/+not-found");
-        } else {
-            Alert.alert("Error", result.error);
-        }
+    const { setUser } = useAuth();
+  
+    const handleOnboarding = () => {
+      // Simulate a successful sign-up
+      setUser({ id: 1, name: 'John Doe' });
+      router.back(); // Close the modal and return to tabs
     };
+
+    // const handleOnboarding = async () => {
+    //     if (!role) {
+    //         Alert.alert("Error", "Please select a role.");
+    //         return;
+    //     }
+
+    //     const result = await signUp(email, password, role, additionalData);
+    //     if (result.success) {
+    //         router.replace(role === "artist" ? "/(tabs)" : "/+not-found");
+    //     } else {
+    //         Alert.alert("Error", result.error);
+    //     }
+    // };
 
     return (
         <ScrollView style={styles.container}>
@@ -142,8 +150,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: "#121212", // Dark background
-    },
+        backgroundColor: "#121212",
+        // Add these lines to center content:
+        // justifyContent: 'center', // Vertically center
+        // alignItems: 'center',     // Horizontally center
+      },
     heroSection: {
         width: width - 40, // Adjust width as needed
         height: 200, // Adjust height as needed
