@@ -56,7 +56,8 @@ const SignInScreen = ({ navigation }: any) => {
     };
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView style={styles.container} 
+        contentContainerStyle={styles.scrollViewContent}>
             {/* Hero Section */}
             <ImageBackground
                 source={{ uri: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80" }}
@@ -140,12 +141,8 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: "#121212",
-        
-        justifyContent: 'center', // Vertically center
-        // alignItems: 'center',     // Horizontally center
+        backgroundColor: "#121212"   
       },
-
     heroSection: {
         width: width,
         
@@ -214,5 +211,10 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
         marginLeft: 10,
+    },
+    scrollViewContent: { // NEW STYLE
+        flexGrow: 1, // Important: Makes the content fill the ScrollView
+        justifyContent: 'center', // Vertically center content
+        // alignItems: 'center',    // Horizontally center if needed
     },
 });
