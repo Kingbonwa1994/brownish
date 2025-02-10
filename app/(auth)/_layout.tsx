@@ -1,8 +1,5 @@
-import { Slot, Stack, useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import React, { useState, useEffect } from 'react';
-import { Modal, View, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Stack } from 'expo-router'
+import React from 'react';
 
 export default function AuthLayout() {
   return (

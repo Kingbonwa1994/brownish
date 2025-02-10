@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "brownish",
-    "slug": "brownish",
+    "name": "nortappza",
+    "slug": "nortappza",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,7 +15,11 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.bonwamdluli.nortappza"
     },
     "web": {
       "bundler": "metro",
@@ -42,6 +46,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "18cb93ee-1587-4e32-ad94-06f64e287357"
+      }
+    },
+    "owner": "bonwamdluli"
   }
 }
