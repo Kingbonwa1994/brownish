@@ -1,1 +1,0 @@
-// Functions related to Appwrite Storage service (file uploads, downloads, listing files, etc.).
