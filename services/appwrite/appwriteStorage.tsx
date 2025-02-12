@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { View, Button, Image, StyleSheet, Text } from 'react-native';
+import { View, Button, Image, StyleSheet, Text, Platform } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { AppwriteClientFactory } from '@/services/appwrite/appwriteClient';
+import { ID } from "react-native-appwrite";
 
 interface MediaUploaderProps {
     mediaTypeOptions: ImagePicker.MediaType;
@@ -28,33 +30,56 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
     const [mediaType, setMediaType] = useState<MediaUploaderState['mediaType']>(null);
     const [uploading, setUploading] = useState<MediaUploaderState['uploading']>(false);
 
-    const uploadMediaFile = async (bucketId: string, asset: ImagePicker.ImagePickerAsset): Promise<{ href: string }> => {
+    const uploadMediaFile = async (
+        bucketId: string,
+        asset: ImagePicker.ImagePickerAsset
+    ): Promise<{ href: string }> => {
         const storage = AppwriteClientFactory.getInstance().storage;
 
         try {
-            // Fetch the asset to get a blob (this gives us the file size and other blob methods)
+            // Fetch the asset to get a blob.
             const res = await fetch(asset.uri);
             const blob = await res.blob();
+            
+            let file: File & { uri: string };
 
-            // Create a file-like object with the required properties
-            const file = {
-                uri: asset.uri,
-                name: asset.fileName || `upload_${Date.now()}`,
-                type: asset.type === 'image' ? 'image/jpeg' : 'video/mp4',
-                size: blob.size,
-                lastModified: Date.now(),
-                webkitRelativePath: '', // you can leave this empty if not applicable
-
-                // Bind the blob's methods so that they can be called later if required
-                arrayBuffer: blob.arrayBuffer.bind(blob),
-                slice: blob.slice.bind(blob),
-                stream: blob.stream ? blob.stream.bind(blob) : () => { throw new Error('stream not supported'); },
-                text: blob.text.bind(blob)
-            } as unknown as File & { uri: string };
-
-            // Now pass the file-like object to createFile
-            const responseFile = await storage.createFile(bucketId, file.name, file);
-
+            if (Platform.OS === 'web') {
+                // On web, create a native File instance and augment it with the "uri" property.
+                file = Object.assign(
+                    new File([blob], asset.fileName || `upload_${Date.now()}`, {
+                        type: asset.type === 'image' ? 'image/jpeg' : 'video/mp4',
+                        lastModified: Date.now(),
+                    }),
+                    { uri: asset.uri }
+                );
+            } else {
+                // On native platforms, try to get the file size using expo-file-system.
+                let fileSize: number = blob.size;
+                const fileInfo = await FileSystem.getInfoAsync(asset.uri, { size: true }) as { size: number };
+                fileSize = blob.size || fileInfo.size;
+                
+                // Create a file-like object with required properties.
+                file = {
+                    uri: asset.uri,
+                    name: asset.fileName || `upload_${Date.now()}`,
+                    type: asset.type === 'image' ? 'image/jpeg' : 'video/mp4',
+                    size: fileSize,
+                    lastModified: Date.now(),
+                    webkitRelativePath: '',
+                    // Bind methods from blob.
+                    arrayBuffer: blob.arrayBuffer.bind(blob),
+                    slice: blob.slice.bind(blob),
+                    stream: blob.stream ? blob.stream.bind(blob) : () => { throw new Error('stream not supported'); },
+                    text: blob.text.bind(blob)
+                } as unknown as File & { uri: string };
+            }
+            // Ensure the file object has a valid, non-undefined uri before uploading.
+            if (!file.uri) {
+                throw new Error("Cannot upload file: file.uri is undefined.");
+            }
+            // Upload the file using Appwrite storage. Instead of using file.name (which might be invalid),
+            // we now generate a compliant file ID.
+            const responseFile = await storage.createFile(bucketId, ID.unique(), file as File & { uri: string });
             return { href: responseFile.$id };
         } catch (error) {
             console.error("Error uploading file to Appwrite:", error);

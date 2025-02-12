@@ -36,16 +36,16 @@ export class AppwriteClientFactory {
    * @throws {Error} If required environment variables are not set
    */
   private static validateConfig(): AppwriteConfig {
-    const endpoint = process.env.EXPO_PUBLIC_APPWRITE_ENDPOINT;
-    const projectId = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID;
-    const bundleId = process.env.EXPO_PUBLIC_APPWRITE_BUNDLE_ID;
+    const endpoint = "https://cloud.appwrite.io/v1";
+    const projectId = process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID!;
+    const bundleId = process.env.EXPO_PUBLIC_APPWRITE_BUNDLE_ID!;
 
     if (!endpoint || !projectId) {
       throw new Error("Missing required Appwrite configuration");
     }
 
     if (Platform.OS !== "web" && !bundleId) {
-      throw new Error("Missing required Appwrite configuration");
+      throw new Error("Missing required for bundleID Appwrite configuration");
     }
 
     return { endpoint, projectId, bundleId };
