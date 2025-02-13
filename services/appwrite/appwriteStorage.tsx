@@ -1,185 +1,121 @@
-import React, { useState, useCallback } from 'react';
-import { View, Button, Image, StyleSheet, Text, Platform } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { AppwriteClientFactory } from '@/services/appwrite/appwriteClient';
-import { ID } from "react-native-appwrite";
+import { ID, } from 'react-native-appwrite'; 
+import { Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker'; 
+import { AppwriteClientFactory } from '@/services/appwrite/appwriteClient'; 
 
-interface MediaUploaderProps {
-    mediaTypeOptions: ImagePicker.MediaType;
-    bucketId: string;
-    onMediaUploaded?: (fileUrl: string, mediaType: 'image' | 'video') => void;
-    buttonTitle?: string;
-    showPreview?: boolean;
-}
+const storage = AppwriteClientFactory.getInstance().storage; 
 
-interface MediaUploaderState {
-    mediaUrl: string | null;
-    mediaType: 'image' | 'video' | null;
-    uploading: boolean;
-}
 
-const MediaUploader: React.FC<MediaUploaderProps> = ({
-    mediaTypeOptions,
-    bucketId,
-    onMediaUploaded,
-    buttonTitle,
-    showPreview = true
-}) => {
-    const [mediaUrl, setMediaUrl] = useState<MediaUploaderState['mediaUrl']>(null);
-    const [mediaType, setMediaType] = useState<MediaUploaderState['mediaType']>(null);
-    const [uploading, setUploading] = useState<MediaUploaderState['uploading']>(false);
-
-    const uploadMediaFile = async (
-        bucketId: string,
-        asset: ImagePicker.ImagePickerAsset
-    ): Promise<{ href: string }> => {
-        const storage = AppwriteClientFactory.getInstance().storage;
-
-        try {
-            // Fetch the asset to get a blob.
-            const res = await fetch(asset.uri);
-            const blob = await res.blob();
-            
-            let file: File & { uri: string };
-
-            if (Platform.OS === 'web') {
-                // On web, create a native File instance and augment it with the "uri" property.
-                file = Object.assign(
-                    new File([blob], asset.fileName || `upload_${Date.now()}`, {
-                        type: asset.type === 'image' ? 'image/jpeg' : 'video/mp4',
-                        lastModified: Date.now(),
-                    }),
-                    { uri: asset.uri }
-                );
-            } else {
-                // On native platforms, try to get the file size using expo-file-system.
-                let fileSize: number = blob.size;
-                const fileInfo = await FileSystem.getInfoAsync(asset.uri, { size: true }) as { size: number };
-                fileSize = blob.size || fileInfo.size;
-                
-                // Create a file-like object with required properties.
-                file = {
-                    uri: asset.uri,
-                    name: asset.fileName || `upload_${Date.now()}`,
-                    type: asset.type === 'image' ? 'image/jpeg' : 'video/mp4',
-                    size: fileSize,
-                    lastModified: Date.now(),
-                    webkitRelativePath: '',
-                    // Bind methods from blob.
-                    arrayBuffer: blob.arrayBuffer.bind(blob),
-                    slice: blob.slice.bind(blob),
-                    stream: blob.stream ? blob.stream.bind(blob) : () => { throw new Error('stream not supported'); },
-                    text: blob.text.bind(blob)
-                } as unknown as File & { uri: string };
-            }
-            // Ensure the file object has a valid, non-undefined uri before uploading.
-            if (!file.uri) {
-                throw new Error("Cannot upload file: file.uri is undefined.");
-            }
-            // Upload the file using Appwrite storage. Instead of using file.name (which might be invalid),
-            // we now generate a compliant file ID.
-            const responseFile = await storage.createFile(bucketId, ID.unique(), file as File & { uri: string });
-            return { href: responseFile.$id };
-        } catch (error) {
-            console.error("Error uploading file to Appwrite:", error);
-            throw new Error("Failed to upload media to Appwrite");
-        }
-    };
-
-    const handleMediaPicked = useCallback(async (pickerResult: ImagePicker.ImagePickerResult) => {
-        if (!pickerResult.canceled && pickerResult.assets && pickerResult.assets.length > 0) {
-            const asset = pickerResult.assets[0];
-            let type: 'image' | 'video' | null = null;
-
-            if (asset.type === 'image') {
-                type = 'image';
-            } else if (asset.type === 'video') {
-                type = 'video';
-            } else {
-                alert("Unsupported media type selected.");
-                return;
-            }
-
-            if (!bucketId) {
-                alert("Bucket ID is not provided to MediaUploader.");
-                return;
-            }
-
-            setUploading(true);
-            try {
-                const fileUrl = await uploadMediaFile(bucketId, asset);
-                setMediaUrl(fileUrl.href);
-                setMediaType(type);
-                if (onMediaUploaded) {
-                    onMediaUploaded(fileUrl.href, type);
-                }
-                alert(`${type.charAt(0).toUpperCase() + type.slice(1)} upload successful! 🎉`);
-            } catch (error) {
-                console.error("Media upload error:", error);
-                alert("Media upload failed, sorry :(");
-            } finally {
-                setUploading(false);
-            }
-        }
-    }, [bucketId, onMediaUploaded]);
-
-    const pickMedia = useCallback(async () => {
-        try {
-            let pickerResult = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: mediaTypeOptions,
-                allowsEditing: true,
-                aspect: [16, 9],
-                quality: 0.7,
-            });
-
-            handleMediaPicked(pickerResult);
-        } catch (error) {
-            console.error("Error launching image library:", error);
-            alert("Error accessing media library.");
-        }
-    }, [mediaTypeOptions, handleMediaPicked]);
-
-    return (
-        <View style={styles.container}>
-            <Button title={buttonTitle || "Pick Media"} onPress={pickMedia} disabled={uploading} />
-            {uploading && <Text style={styles.uploadingText}>Uploading...</Text>}
-            {showPreview && mediaUrl && mediaType === 'image' && (
-                <Image source={{ uri: mediaUrl }} style={styles.mediaPreview} />
-            )}
-            {showPreview && mediaUrl && mediaType === 'video' && (
-                <View style={styles.videoPlaceholder}>
-                    <Text>Video Preview (Replace with Video Player)</Text>
-                    <Text>URL: {mediaUrl}</Text>
-                </View>
-            )}
-        </View>
-    );
+const prepareNativeFile = async (asset: { uri: string | URL; fileSize: any; mimeType: any; }) => { // Keep prepareNativeFile within this module
+    console.log("[prepareNativeFile] asset ==>", asset);
+    try {
+        const url = new URL(asset.uri);
+        // Handle native file preparation
+        return {
+            name: url.pathname.split("/").pop()!,
+            size: asset.fileSize,
+            type: asset.mimeType,
+            uri: url.href,
+        };
+    } catch (error) {
+        console.error("[prepareNativeFile] error ==>", error);
+        return Promise.reject(error);
+    }
 };
 
-const styles = StyleSheet.create({
-    container: {
-        alignItems: 'center',
-        marginVertical: 10,
-    },
-    mediaPreview: {
-        width: 200,
-        height: 200,
-        marginTop: 10,
-    },
-    videoPlaceholder: {
-        width: 200,
-        height: 200,
-        marginTop: 10,
-        backgroundColor: '#f0f0f0',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    uploadingText: {
-        marginTop: 5,
-        fontStyle: 'italic',
-        color: 'grey',
-    },
-});
 
-export default MediaUploader;
+const uploadMedia = async (bucketId: string, asset: ImagePicker.ImagePickerAsset) => { // Modified to take bucketId and ImagePickerAsset
+    try {
+        if (!asset.uri) {
+            throw new Error("No file selected in asset");
+        }
+        if (!bucketId) {
+            throw new Error("Bucket ID is required for uploadMedia"); // Added bucketId check
+        }
+
+        const fileData = Platform.OS === "web" ? asset.file : await prepareNativeFile({
+            uri: asset.uri,
+            fileSize: asset.fileSize,
+            mimeType: asset.mimeType,
+        });
+
+        const response = await storage.createFile(
+            bucketId, // Use bucketId parameter
+            ID.unique(),
+            // @ts-ignore  (Typescript issue with react-native-appwrite SDK and File type)
+            fileData
+        );
+        console.log("[file uploaded] ==>", response);
+
+        const fileUrl = storage.getFileView(
+            bucketId, // Use bucketId parameter
+            response.$id // fileId
+        );
+        console.log("[file view url] ==>", fileUrl); // Log view URL for debugging - you might want to return this directly
+
+        return fileUrl; // Return the fileView URL (or just fileId if you prefer URLs to be constructed in components)
+
+    } catch (error) {
+        console.error("[uploadMediaFile] error ==>", error); // Keep original error log message for consistency with other service functions
+        throw error; // Re-throw to handle errors in components
+    }
+};
+
+
+const pickAndUploadMedia = async (bucketId: string) => { // Modified to take bucketId
+    try {
+        let pickerResult = await ImagePicker.launchImageLibraryAsync({
+            // eslint-disable-next-line import/namespace
+            mediaTypes: ImagePicker.MediaTypeOptions.All, // Allows both images and videos
+            allowsEditing: true,
+            aspect: [4, 3], // Optional, adjust as needed
+            quality: 1, // Optional, adjust as needed
+        });
+
+        if (!pickerResult.canceled) {
+            try {
+                // Ensure pickerResult.assets is not undefined and has at least one asset
+                if (pickerResult.assets && pickerResult.assets.length > 0) {
+                    const uploadResult = await uploadMedia(bucketId, pickerResult.assets[0]); // Pass bucketId and asset to uploadMedia
+                    console.log("Upload successful! URL:", uploadResult);
+                    return uploadResult; // Return the URL so the caller can use it
+                } else {
+                    console.warn("No assets returned from image picker, but not cancelled."); // Log a warning, might be unexpected
+                    return null; // Or handle as appropriate for your app - maybe throw error instead?
+                }
+
+            } catch (e) {
+                console.error("Upload failed in pickAndUploadMedia:", e);
+                throw e; // Re-throw the error for handling by the caller
+            }
+        }
+        return null; // Return null if the user cancels the picker
+    } catch (pickerError) {
+        console.error("Error in pickAndUploadMedia:", pickerError); // Catch errors from ImagePicker.launchImageLibraryAsync
+        throw pickerError; // Re-throw picker errors as well
+    }
+};
+
+
+const appwriteStorageService = { // Update the exported service object
+    uploadMediaFile: uploadMedia, // Use the refactored uploadMedia as uploadMediaFile
+    getFileView: async (bucketId: any, fileId: any) => { // Keep getFileView if you need to fetch URLs separately sometimes
+        try {
+            return storage.getFileView(bucketId, fileId);
+        } catch (error) {
+            console.error(`Appwrite Storage Get File View Error in bucket ${bucketId}`, error);
+            throw error;
+        }
+    },
+    deleteFile: async (bucketId: any, fileId: any) => {
+        try {
+            return await storage.deleteFile(bucketId, fileId);
+        } catch (error) {
+            console.error(`Appwrite Storage Delete File Error in bucket ${bucketId}`, error);
+            throw error;
+        }
+    },
+    pickAndUploadMedia: pickAndUploadMedia, // Export pickAndUploadMedia function
+};
+
+export default appwriteStorageService;

@@ -1,93 +1,199 @@
-import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from "react-native";
-import * as DocumentPicker from "expo-document-picker";
+import React, { useState, useEffect, useCallback } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import MediaUploader from "@/components/ui/MediaUploader";
+import * as constants from "@/constants/appConstants";
+import appwriteDataBase from "@/services/appwrite/appwriteDataBase";
+import appwriteStorage from "@/services/appwrite/appwriteStorage";
 
-const SubmitTrackScreen = ({ isSubscribed }: { isSubscribed: boolean }) => {
+interface RadioStation {
+    $id: string;
+    name: string;
+    email: string;
+    frequency: string;
+}
+
+interface SubmitScreenProps {
+    isSubscribed: boolean; // Prop to indicate subscription status
+}
+
+const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
     const [email, setEmail] = useState("");
     const [artistName, setArtistName] = useState("");
     const [trackTitle, setTrackTitle] = useState("");
-    const [trackInfo, setTrackInfo] = useState("");
-    const [track, setTrack] = useState<string | null>(null);
-    const [avatar, setAvatar] = useState<string | null>(null);
-    const [selectedStations, setSelectedStations] = useState<number[]>([]);
+    const [trackInfo, setTrackInfo] = useState(""); 
+    const [trackUrl, setTrackUrl] = useState<string | null>(null); 
+    const [avatarUrl, setAvatarUrl] = useState<string | null>(null); 
+    const [selectedRadioStationIds, setSelectedRadioStationIds] = useState<string[]>([]); // Store selected station IDs (using Appwrite document IDs)
+    const [isCollapsed, setIsCollapsed] = useState(true);
+    const [radioStations, setRadioStations] = useState<RadioStation[]>([]);
+    const [isLoadingStations, setIsLoadingStations] = useState(false); 
+    const [isSubmitting, setIsSubmitting] = useState(false); 
 
-    const radioStations = [
-        { id: 1, name: "Radio 1", email: "radio1@example.com", frequency: "98.5 FM" },
-        { id: 2, name: "Radio 2", email: "radio2@example.com", frequency: "101.2 FM" },
-        { id: 3, name: "Radio 3", email: "radio3@example.com", frequency: "105.9 FM" },
-    ];
+    useEffect(() => {
+        loadRadioStations();
+    }, []);
 
-    const handleUpload = async () => {
+    const loadRadioStations = useCallback(async () => {
+        setIsLoadingStations(true);
+        try {
+            const response = await appwriteDataBaseService.listRadioStations();
+            if (response && response.documents) {
+                setRadioStations(response.documents as RadioStation[]);
+            } else {
+                Alert.alert("Error", "Failed to load radio stations.");
+            }
+        } catch (error) {
+            console.error("Error loading radio stations:", error);
+            Alert.alert("Error", "Failed to load radio stations.");
+        } finally {
+            setIsLoadingStations(false);
+        }
+    }, []);
+
+    const handleAvatarUpload = useCallback(async () => {
+        try {
+            const fileUrl = await appwriteStorageService.pickAndUploadMedia(constants.ALBUM_COVERS_BUCKET_ID);
+            if (fileUrl) {
+                setAvatarUrl(fileUrl.href);
+                console.log("Avatar URL set:", fileUrl.href);
+                Alert.alert("Upload Successful", "Avatar uploaded successfully!");
+            } else {
+                console.log("Avatar upload cancelled by user.");
+            }
+        } catch (error) {
+            console.error("Avatar upload error:", error);
+            Alert.alert("Upload Failed", "Failed to upload avatar.");
+        }
+    }, []);
+
+    const handleTrackUpload = useCallback(async () => {
+        try {
+            const fileUrl = await appwriteStorageService.pickAndUploadMedia(constants.MUSIC_TRACKS_BUCKET_ID);
+            if (fileUrl) {
+                setTrackUrl(fileUrl.href);
+                console.log("Track URL set:", fileUrl.href);
+                Alert.alert("Upload Successful", "Track uploaded successfully!");
+            } else {
+                console.log("Track upload cancelled by user.");
+            }
+        } catch (error) {
+            console.error("Track upload error:", error);
+            Alert.alert("Upload Failed", "Failed to upload track.");
+        }
+    }, []);
+
+
+    const toggleRadioStationSelection = useCallback((stationId: string) => {
+        setSelectedRadioStationIds((prev) =>
+            prev.includes(stationId) ? prev.filter(id => id !== stationId) : [...prev, stationId]
+        );
+    }, []);
+
+    const handleSubmit = useCallback(async () => {
         if (!isSubscribed) {
             Alert.alert("Subscription Required", "Stakeholders must subscribe to submit tracks.");
             return;
         }
-        
-        let result = await DocumentPicker.getDocumentAsync({ type: "audio/*" });
-        if (!result.canceled) {
-            setTrack(result.assets[0].uri);
-        }
-    };
-
-    const handleImageUpload = async () => {
-        let result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 1,
-        });
-        if (!result.canceled) {
-            setAvatar(result.assets[0].uri);
-        }
-    };
-
-    const handleSubmit = () => {
-        if (!track || !artistName || !trackTitle || !email) {
-            Alert.alert("Error", "Please complete all fields and upload a track before submitting.");
+        if (!trackUrl || !artistName || !trackTitle || !email || !avatarUrl || selectedRadioStationIds.length === 0) {
+            Alert.alert("Error", "Please complete all fields, upload track and avatar, and select radio stations.");
             return;
         }
-        
-        Alert.alert("Success", "Track submitted successfully to selected radio stations.");
-    };
+
+        setIsSubmitting(true);
+        try {
+            // ** Save submission data to Appwrite Database **
+            await appwriteDataBaseService.createDocument(constants.SUBMISSIONS_COLLECTION_ID, { /* ... submission data ... */ });
+    
+            // ** After successful database save, trigger the email function **
+            try {
+                // Get email addresses of selected radio stations
+                const selectedStationEmails = radioStations
+                    .filter(station => selectedRadioStationIds.includes(station.$id))
+                    .map(station => station.email);
+    
+                await appwriteFunctionsService.executeSubmitTrackEmailFunction(
+                    selectedStationEmails,
+                    trackTitle,
+                    artistName
+                );
+                console.log("Submission email function triggered successfully.");
+                Alert.alert("Success", "Track submitted and radio stations notified!"); // Update success alert message
+            } catch (emailError) {
+                console.error("Error triggering email function:", emailError);
+                Alert.alert("Submission Partially Successful", "Track submitted, but email notification failed. Please contact support if needed."); // Indicate partial success
+                // Consider logging this emailError more thoroughly for debugging - maybe send to error tracking service
+            }
+            // Reset form after successful submission (whether email function succeeds or fails - consider your UX)
+            setEmail("");
+            setArtistName("");
+            setTrackTitle("");
+            setTrackInfo("");
+            setTrackUrl(null);
+            setAvatarUrl(null);
+            setSelectedRadioStationIds([]);
+    
+        } catch (dbError) { // Renamed to dbError for clarity
+            console.error("Submission Database Error:", dbError);
+            Alert.alert("Submission Failed", "Failed to submit track. Please try again later.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    }, [isSubscribed, trackUrl, artistName, trackTitle, email, avatarUrl, selectedRadioStationIds, radioStations]); // Add radioStations to dependencies (important for email retrieval)
 
     return (
-        <View style={styles.container}>
+        <ScrollView style={styles.container}>
             <Text style={styles.title}>Submit Your Track</Text>
-            
-            <TextInput style={styles.input} placeholder="Your Email" value={email} onChangeText={setEmail} />
+
+            <TextInput style={styles.input} placeholder="Your Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
             <TextInput style={styles.input} placeholder="Artist Name" value={artistName} onChangeText={setArtistName} />
             <TextInput style={styles.input} placeholder="Track Title" value={trackTitle} onChangeText={setTrackTitle} />
-            <TextInput style={styles.textArea} placeholder="Track Info" value={trackInfo} onChangeText={setTrackInfo} multiline />
-            
-            <TouchableOpacity style={styles.uploadButton} onPress={handleImageUpload}>
-                <Text style={styles.uploadText}>{avatar ? "Avatar Selected" : "Upload Artist Avatar"}</Text>
+   
+
+
+            <Text style={styles.label}>Upload Artist Avatar</Text>
+            <TouchableOpacity style={styles.uploadButton} onPress={handleAvatarUpload}>
+                <Text style={styles.uploadText}>{avatarUrl ? "Change Avatar" : "Upload Artist Avatar"}</Text>
             </TouchableOpacity>
-            {avatar && <Image source={{ uri: avatar }} style={styles.avatar} />}
-            
-            <TouchableOpacity style={styles.uploadButton} onPress={handleUpload}>
-                <Text style={styles.uploadText}>{track ? "Track Selected" : "Upload Track"}</Text>
+            {avatarUrl && <Image source={{ uri: avatarUrl }} style={styles.avatar} />}
+
+            <Text style={styles.label}>Upload Track (Audio File)</Text>
+            <TouchableOpacity style={styles.uploadButton} onPress={handleTrackUpload}>
+                <Text style={styles.uploadText}>{trackUrl ? "Change Track" : "Upload Track"}</Text>
             </TouchableOpacity>
-            
-            <Text style={styles.label}>Select Radio Stations:</Text>
-            {radioStations.map((station) => (
-                <TouchableOpacity
-                    key={station.id}
-                    style={[styles.radioItem, selectedStations.includes(station.id) && styles.selected]}
-                    onPress={() => setSelectedStations((prev) => prev.includes(station.id) ? prev.filter(id => id !== station.id) : [...prev, station.id])}
-                >
-                    <Text style={styles.radioText}>{station.name} - {station.frequency}</Text>
-                </TouchableOpacity>
-            ))}
-            
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                <Text style={styles.submitText}>Submit Track</Text>
+            {trackUrl && <Text style={styles.uploadConfirmation}>Track Uploaded!</Text>}
+
+
+            <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setIsCollapsed(!isCollapsed)} disabled={isLoadingStations}>
+                <Text style={styles.label}>Select Radio Stations:</Text>
+                {isLoadingStations ? <Text style={styles.collapseIcon}>Loading...</Text> : <Text style={styles.collapseIcon}>{isCollapsed ? "▼" : "▲"}</Text>}
             </TouchableOpacity>
-        </View>
+            {!isCollapsed && (
+                <View>
+                    {radioStations.map((station) => (
+                        <TouchableOpacity
+                            key={station.$id}
+                            style={[styles.radioItem, selectedRadioStationIds.includes(station.$id) && styles.selected]}
+                            onPress={() => toggleRadioStationSelection(station.$id)}
+                            disabled={isLoadingStations}
+                        >
+                            <Text style={styles.radioText}>{station.name} - {station.frequency}</Text>
+                        </TouchableOpacity>
+                    ))}
+                    {radioStations.length === 0 && !isLoadingStations && <Text style={styles.noStationsText}>No radio stations available.</Text>}
+                </View>
+            )}
+
+            <TouchableOpacity
+                style={styles.submitButton}
+                onPress={handleSubmit}
+                disabled={isSubmitting || isLoadingStations} // Disable while submitting or loading stations
+            >
+                <Text style={styles.submitText}>{isSubmitting ? "Submitting..." : "Submit Track"}</Text>
+            </TouchableOpacity>
+        </ScrollView>
     );
 };
-
-export default SubmitTrackScreen;
 
 const styles = StyleSheet.create({
     container: {
@@ -121,14 +227,14 @@ const styles = StyleSheet.create({
         color: "#e0e0e0",
         height: 80,
     },
-    uploadButton: {
+    uploadButton: { // Style not directly used anymore, but kept for potential other buttons
         backgroundColor: "#42ba96",
         padding: 15,
         borderRadius: 8,
         alignItems: "center",
-        marginBottom: 20,
+        marginBottom: 20, // Not used for MediaUploader button by default
     },
-    uploadText: {
+    uploadText: { // Style not directly used anymore
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
@@ -152,12 +258,12 @@ const styles = StyleSheet.create({
     radioText: {
         color: "#e0e0e0",
     },
-    avatar: {
+    avatar: { // Style not directly used anymore
         width: 100,
         height: 100,
         borderRadius: 50,
         alignSelf: "center",
-        marginBottom: 20,
+        marginBottom: 20, // Not used for MediaUploader preview
     },
     submitButton: {
         backgroundColor: "#673ab7",
@@ -171,4 +277,27 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
     },
+    collapsibleHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    collapseIcon: {
+        fontSize: 16,
+        color: "#9e9e9e",
+    },
+    uploadConfirmation: {
+        color: '#42ba96', // Green color for confirmation
+        marginTop: 5,
+        marginBottom: 10,
+        fontStyle: 'italic',
+    },
+    noStationsText: {
+        color: '#9e9e9e',
+        fontStyle: 'italic',
+        marginTop: 5,
+    },
 });
+
+export default SubmitScreen;

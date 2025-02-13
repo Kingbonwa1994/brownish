@@ -1,8 +1,9 @@
-//Singleton client initialization
+// Singleton client initialization
 import * as apw from "appwrite";
 import { Platform } from "react-native";
 import { Storage as aprnStorage } from "react-native-appwrite/src/services/storage";
 import { Account as aprnAccount } from "react-native-appwrite/src/services/account";
+import { Databases as aprnDatabase } from "react-native-appwrite";
 import * as aprn from "react-native-appwrite/src";
 
 interface AppwriteConfig {
@@ -14,6 +15,7 @@ interface AppwriteConfig {
 interface AppwriteClient {
   storage: apw.Storage | aprnStorage;
   account: apw.Account | aprnAccount;
+  database: apw.Databases | aprnDatabase;
 }
 
 /**
@@ -66,6 +68,7 @@ export class AppwriteClientFactory {
         this.instance = {
           storage: new apw.Storage(client),
           account: new apw.Account(client),
+          database: new apw.Databases(client),
         };
       } else {
         const client = new aprn.Client();
@@ -76,6 +79,7 @@ export class AppwriteClientFactory {
         this.instance = {
           storage: new aprnStorage(client),
           account: new aprnAccount(client),
+          database: new aprnDatabase(client as unknown as import("react-native-appwrite/types/client").Client),
         };
       }
     }

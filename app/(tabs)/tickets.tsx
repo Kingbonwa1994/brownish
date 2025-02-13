@@ -1,31 +1,27 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, FlatList, StyleSheet, TextInput, Modal } from "react-native";
+import { View, Text, TouchableOpacity, FlatList, StyleSheet, TextInput, Modal, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 
-
-
-const ticketTypes = [
-    { id: "1", type: "General", event: "Concert A", price: 50 },
-    { id: "2", type: "VIP", event: "Concert A", price: 100 },
-    { id: "3", type: "VVIP", event: "Concert B", price: 200 },
-];
-
 const TicketScreen = () => {
     const router = useRouter();
     const [cart, setCart] = useState<{ id: any; type?: string; price?: number; quantity?: number }[]>([]);
-
     const [modalVisible, setModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [newTicket, setNewTicket] = useState({ name: "", event: "", price: "" });
+    const [ticketTypes, setTicketTypes] = useState([
+        { id: "1", type: "General", event: "Concert A", price: 50 },
+        { id: "2", type: "VIP", event: "Concert A", price: 100 },
+        { id: "3", type: "VVIP", event: "Concert B", price: 200 },
+    ]);
 
     const addToCart = (ticket: { id: any; type?: string; event?: string; price?: number; }) => {
         setCart((prevCart) => {
             const existingTicket = prevCart.find((item) => item.id === ticket.id);
             if (existingTicket) {
                 return prevCart.map((item) =>
-                    item.id === ticket.id ? { ...item, quantity: (item.quantity || 0 ) + 1 } : item
+                    item.id === ticket.id ? { ...item, quantity: (item.quantity || 0) + 1 } : item
                 );
             } else {
                 return [...prevCart, { ...ticket, quantity: 1 }];
@@ -34,11 +30,21 @@ const TicketScreen = () => {
     };
 
     const addTicket = () => {
-        if (newTicket.name && newTicket.event && newTicket.price) {
-            ticketTypes.push({ id: String(ticketTypes.length + 1), type: newTicket.name, event: newTicket.event, price: parseFloat(newTicket.price) });
-            setModalVisible(false);
-            setNewTicket({ name: "", event: "", price: "" });
+        if (!newTicket.name || !newTicket.event || !newTicket.price) {
+            Alert.alert("Error", "Please fill in all fields");
+            return;
         }
+
+        const newTicketItem = {
+            id: String(ticketTypes.length + 1),
+            type: newTicket.name,
+            event: newTicket.event,
+            price: parseFloat(newTicket.price),
+        };
+
+        setTicketTypes((prevTickets) => [...prevTickets, newTicketItem]);
+        setModalVisible(false);
+        setNewTicket({ name: "", event: "", price: "" });
     };
 
     return (
