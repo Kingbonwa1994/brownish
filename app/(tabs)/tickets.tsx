@@ -4,7 +4,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
 import { AppwriteClientFactory } from '@/services/appwrite/appwriteClient';
 import * as constants from '@/constants/appConstants'
-import PaymentScreen from '@/components/PaypalComponent'; // Import the PaymentScreen
+import { PayPalButtons } from "@paypal/react-paypal-js";
 import { ID } from "react-native-appwrite";
 
 const database = AppwriteClientFactory.getInstance().database;
@@ -138,11 +138,11 @@ const TicketScreen = () => {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
-                <Text style={styles.checkoutText}>Checkout</Text>
+                <Text style={styles.checkoutText}><PayPalButtons /></Text>
             </TouchableOpacity>
 
             {checkoutVisible && (
-                <PaymentScreen amount={calculateTotal()} />
+                <PayPalButtons />
             )}
 
             {/* Bottom Sheet Modal for Adding Tickets */}

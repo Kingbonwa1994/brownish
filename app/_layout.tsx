@@ -6,6 +6,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
+
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { AuthProvider } from '@/context/AuthContext';
 
@@ -27,16 +29,23 @@ export default function RootLayout() {
   if (!loaded) {
     return null;
   }
+  const initialOptions = {
+    clientId: "test",
+    currency: "USD",
+    intent: "capture",
+};
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AuthProvider>
+        <PayPalScriptProvider options={initialOptions}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name='(profile)' options={{ headerShown: false }} />
       </Stack>
+      </PayPalScriptProvider>
       </AuthProvider>
       <StatusBar style="auto" />
     </ThemeProvider>
