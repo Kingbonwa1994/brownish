@@ -1,20 +1,46 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, FlatList, StyleSheet, TextInput, Modal, Alert } from "react-native";
-import { useRouter } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons } from "@expo/vector-icons";
+import { AppwriteClientFactory } from '@/services/appwrite/appwriteClient';
+import * as constants from '@/constants/appConstants'
+import PaymentScreen from '@/components/PaypalComponent'; // Import the PaymentScreen
+import { ID } from "react-native-appwrite";
+
+const database = AppwriteClientFactory.getInstance().database;
 
 const TicketScreen = () => {
-    const router = useRouter();
     const [cart, setCart] = useState<{ id: any; type?: string; price?: number; quantity?: number }[]>([]);
     const [modalVisible, setModalVisible] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [newTicket, setNewTicket] = useState({ name: "", event: "", price: "" });
     const [ticketTypes, setTicketTypes] = useState([
-        { id: "1", type: "General", event: "Concert A", price: 50 },
-        { id: "2", type: "VIP", event: "Concert A", price: 100 },
-        { id: "3", type: "VVIP", event: "Concert B", price: 200 },
+        { id: "", type: "", event: "", price: 0 },
     ]);
+    const [checkoutVisible, setCheckoutVisible] = useState(false);
+
+    useEffect(() => {
+        const fetchTickets = async () => {
+            try {
+                const response = await database.listDocuments(
+                    constants.TICKETS_COLLECTION_ID,
+                    constants.DATABASE_ID,
+                ); // Replace "tickets" with your collection ID
+                const tickets = response.documents.map((doc: any) => ({
+                    id: doc.$id,
+                    type: doc.type,
+                    event: doc.event,
+                    price: doc.price,
+                }));
+                setTicketTypes(tickets);
+            } catch (error) {
+                console.error("Error fetching tickets:", error);
+                Alert.alert("Error", "Failed to fetch tickets. Please try again.");
+            }
+        };
+
+        fetchTickets();
+    }, []);
 
     const addToCart = (ticket: { id: any; type?: string; event?: string; price?: number; }) => {
         setCart((prevCart) => {
@@ -29,22 +55,55 @@ const TicketScreen = () => {
         });
     };
 
-    const addTicket = () => {
+    const calculateTotal = () => {
+        return cart.reduce((total, item) => total + (item.price || 0) * (item.quantity || 1), 0);
+    };
+
+    const handleCheckout = () => {
+        const totalAmount = calculateTotal();
+        if (totalAmount > 0) {
+            setCheckoutVisible(true);
+        } else {
+            Alert.alert("Error", "Your cart is empty.");
+        }
+    };
+
+    const addTicket = async () => {
         if (!newTicket.name || !newTicket.event || !newTicket.price) {
             Alert.alert("Error", "Please fill in all fields");
             return;
         }
 
         const newTicketItem = {
-            id: String(ticketTypes.length + 1),
             type: newTicket.name,
             event: newTicket.event,
             price: parseFloat(newTicket.price),
         };
 
-        setTicketTypes((prevTickets) => [...prevTickets, newTicketItem]);
-        setModalVisible(false);
-        setNewTicket({ name: "", event: "", price: "" });
+        try {
+            // Add the ticket to the Appwrite database
+            const response = await database.createDocument(
+                constants.DATABASE_ID,
+                constants.TICKETS_COLLECTION_ID,
+                ID.unique(),                
+                newTicketItem // Data to be added
+            );
+
+            console.log("Ticket added successfully:", response);
+
+            // Update local state with the new ticket
+            setTicketTypes((prevTickets) => [
+                ...prevTickets,
+                { ...newTicketItem, id: response.$id }, // Use the ID returned by Appwrite
+            ]);
+
+            // Close the modal and reset the form
+            setModalVisible(false);
+            setNewTicket({ name: "", event: "", price: "" });
+        } catch (error) {
+            console.error("Error adding ticket:", error);
+            Alert.alert("Error", "Failed to add ticket. Please try again.");
+        }
     };
 
     return (
@@ -77,6 +136,14 @@ const TicketScreen = () => {
             <TouchableOpacity style={styles.addTicketButton} onPress={() => setModalVisible(true)}>
                 <Text style={styles.addTicketText}>+ Add Ticket</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
+                <Text style={styles.checkoutText}>Checkout</Text>
+            </TouchableOpacity>
+
+            {checkoutVisible && (
+                <PaymentScreen amount={calculateTotal()} />
+            )}
 
             {/* Bottom Sheet Modal for Adding Tickets */}
             <Modal
@@ -165,6 +232,18 @@ const styles = StyleSheet.create({
         marginTop: 20,
     },
     addTicketText: {
+        color: "#fff",
+        fontSize: 16,
+        fontWeight: "bold",
+    },
+    checkoutButton: {
+        backgroundColor: "#4CAF50",
+        padding: 12,
+        borderRadius: 8,
+        alignItems: "center",
+        marginTop: 10,
+    },
+    checkoutText: {
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",

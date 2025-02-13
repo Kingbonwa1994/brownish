@@ -118,7 +118,7 @@ const Reels: React.FC = () => {
             <Ionicons name="logo-youtube" size={24} color="#FF0000" style={styles.socialIcon} />
             <FontAwesome name="spotify" size={24} color="#1DB954" style={styles.socialIcon} />
             <Ionicons name="logo-instagram" size={24} color="#C13584" style={styles.socialIcon} />
-            <FontAwesome name="twitter" size={24} color="#000" style={styles.socialIcon} />
+            <FontAwesome name="twitter" size={24} color="#fff" style={styles.socialIcon} />
           </View>
         </View>
         <View style={styles.searchContainer}>
