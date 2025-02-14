@@ -1,15 +1,28 @@
 
-export const APPWRITE_ENDPOINT = '';
-export const APPWRITE_PROJECT_ID = '';
+//basic config
+export const APPWRITE_ENDPOINT=process.env.EXPO_PUBLIC_APPWRITE_API_ENDPOINT! 
+export const APPWRITE_PROJECT_ID=process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID!
 export const DATABASE_ID = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
-export const RADIO_STATIONS_COLLECTION_ID = 'radio_stations_collection_id';
-export const SUBMISSIONS_COLLECTION_ID = 'submissions_collection_id';
-export const MUSIC_TRACKS_BUCKET_ID = 'music_tracks_bucket_id';
-export const ALBUM_COVERS_BUCKET_ID = 'album_covers_bucket_id';
-export const GENERAL_BUCKET_ID = 'your_general_bucket_id'; 
-export const ARTIST_ROLE = 'artist';
-export const STAKEHOLDER_ROLE = 'stakeholder';
-export const ADMIN_ROLE = 'admin';
-export const TICKETS_COLLECTION_ID=process.env.EXPO_PUBLIC_APPWRITE_TICKETS_COLLECTIONS_ID!
 
-export const DEFAULT_LIST_LIMIT = 50;
+//collections
+export const RADIO_STATIONS_COLLECTION_ID=process.env.EXPO_PUBLIC_APPWRITE_RADIO_STATIONS_COLLECTION_ID!
+export const SUBMISSIONS_COLLECTION_ID=process.env.EXPO_PUBLIC_APPWRITE_SUBMISSIONS_COLLECTION_ID!
+export const TICKETS_COLLECTION_ID=process.env.EXPO_PUBLIC_APPWRITE_TICKETS_COLLECTIONS_ID!
+export const USERS_COLLECTION_ID=process.env.EXPO_PUBLIC_APPWRITE_USERS_COLLECTION_ID!
+
+//buckets
+// export const MUSIC_TRACKS_BUCKET_ID=process.env.EXPO_PUBLIC_APPWRITE_MUSIC_TRACKS_BUCKET_ID!
+// export const ALBUM_COVERS_BUCKET_ID=process.env.EXPO_PUBLIC_APPWRITE_ALBUM_COVERS_BUCKET_ID!
+// export const REELS_BUCKET_ID=process.env.EXPO_PUBLIC_APPWRITE_REELS_BUCKET_ID!
+
+//roles
+export const ARTIST_ROLE='artist';
+export const STAKEHOLDER_ROLE ='stakeholder';
+export const ADMIN_ROLE='admin';
+
+
+//paypal variables
+export const PAYPAL_CLIENT_ID=process.env.PAYPAL_CLIENT_ID!
+export const PAYPAL_SECRET_ID=process.env.PAYPAL_SECRET_ID!
+
+

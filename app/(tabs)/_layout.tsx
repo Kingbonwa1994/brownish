@@ -1,15 +1,33 @@
-import { Tabs } from "expo-router";
+import { Redirect, Tabs } from "expo-router";
 import React from "react";
-import { Platform } from "react-native";
+import { ActivityIndicator, Platform, SafeAreaView } from "react-native";
 import { MaterialCommunityIcons, Feather, Ionicons, FontAwesome6 } from "@expo/vector-icons";
 
 import { HapticTab } from "@/components/HapticTab";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useGlobalContext } from '@/lib/global-provider'
+
+
 
 export default function TabLayout() {
+
   const colorScheme = useColorScheme();
+  const { loading, isLogged } = useGlobalContext();
+
+  if (loading) {
+    return (
+      <SafeAreaView className="bg-white h-full flex justify-center items-center">
+        <ActivityIndicator className="text-primary-300" size="large" />
+      </SafeAreaView>
+    );
+  }
+
+  if (!isLogged) {
+    return <Redirect href="/sign-in" />;
+  }
+
 
   return (
     <Tabs
@@ -82,6 +100,7 @@ export default function TabLayout() {
         name="reels"
         options={{
           title: "Reels",
+          popToTopOnBlur: true,
           tabBarIcon: ({ color }) => <FontAwesome6 name="clapperboard" size={28} color={color} />,
         }}
       />
