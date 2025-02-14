@@ -1,3 +1,5 @@
+"use client";
+
 import { Redirect, Tabs } from "expo-router";
 import React from "react";
 import { ActivityIndicator, Platform, SafeAreaView } from "react-native";
@@ -9,10 +11,7 @@ import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useGlobalContext } from '@/lib/global-provider'
 
-
-
 export default function TabLayout() {
-
   const colorScheme = useColorScheme();
   const { loading, isLogged } = useGlobalContext();
 
@@ -27,7 +26,6 @@ export default function TabLayout() {
   if (!isLogged) {
     return <Redirect href="/sign-in" />;
   }
-
 
   return (
     <Tabs
