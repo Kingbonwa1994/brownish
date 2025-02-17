@@ -22,7 +22,7 @@ const HomeScreen = () => {
                     style={styles.heroOverlay}
                 >
                     <Text style={styles.heroTitle}>Welcome to NORT</Text>
-                    <Text style={styles.heroSubtitle}>Your gateway to music, networking, and exclusive content</Text>
+                    <Text style={styles.heroSubtitle}>The No. 1 Submission platform in the entire planet</Text>
                 </LinearGradient>
             </ImageBackground>
 

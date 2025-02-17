@@ -9,17 +9,15 @@ import { login } from "@/lib/appwrite";
 
 
 
-
-
 const { width } = Dimensions.get("window");
 const SignInScreen = () => {
-    const { refetch, loading, isLogged } = useGlobalContext();
-    if (!loading && isLogged) return <Redirect href="/" />;
+    // const { refetch, loading, isLogged } = useGlobalContext();
+    // if (!loading && isLogged) return <Redirect href="/" />;
   
     const handleLogin = async () => {
       const result = await login();
       if (result) {
-        refetch();
+        // refetch();
       } else {
         Alert.alert("Error", "Failed to login");
       }

@@ -9,6 +9,7 @@
         "android": {
           "buildType": "apk" 
         }
+        
       }
     }
     
