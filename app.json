@@ -1,5 +1,6 @@
 {
   "expo": {
+
     "name": "nortappza",
     "slug": "nortappza",
     "version": "1.0.0",
@@ -56,6 +57,7 @@
       "typedRoutes": true
     },
     "extra": {
+      
       "router": {
         "origin": false
       },

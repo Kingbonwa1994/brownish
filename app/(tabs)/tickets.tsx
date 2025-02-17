@@ -15,7 +15,16 @@ const TicketScreen = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [newTicket, setNewTicket] = useState({ name: "", event: "", price: "" });
     const [ticketTypes, setTicketTypes] = useState([
-        { id: "", type: "", event: "", price: 0 },
+        { 
+            id: "", 
+            type: "", 
+            description: "", 
+            eventDate: "", 
+            venue: "", 
+            availableTickets: 0, 
+            organizer: "", 
+            price: [] 
+        },
     ]);
     const [checkoutVisible, setCheckoutVisible] = useState(false);
 
@@ -29,7 +38,11 @@ const TicketScreen = () => {
                 const tickets = response.documents.map((doc: any) => ({
                     id: doc.$id,
                     type: doc.type,
-                    event: doc.event,
+                    description: doc.description,
+                    eventDate: doc.eventDate,
+                    venue: doc.venue,
+                    availableTickets: doc.availableTickets,
+                    owner: doc.owner,
                     price: doc.price,
                 }));
                 setTicketTypes(tickets);
@@ -42,7 +55,7 @@ const TicketScreen = () => {
         fetchTickets();
     }, []);
 
-    const addToCart = (ticket: { id: any; type?: string; event?: string; price?: number; }) => {
+    const addToCart = (ticket: { id: any; type?: string; description?: string; eventDate?: string; venue?: string; availableTickets?: number; organizer?: string; price?: number[]; }) => {
         setCart((prevCart) => {
             const existingTicket = prevCart.find((item) => item.id === ticket.id);
             if (existingTicket) {
@@ -56,7 +69,7 @@ const TicketScreen = () => {
     };
 
     const calculateTotal = () => {
-        return cart.reduce((total, item) => total + (item.price || 0) * (item.quantity || 1), 0);
+        return cart.reduce((total, item) => total + (item.price?.[0] || 0) * (item.quantity || 1), 0);
     };
 
     const handleCheckout = () => {
@@ -76,8 +89,12 @@ const TicketScreen = () => {
 
         const newTicketItem = {
             type: newTicket.name,
-            event: newTicket.event,
-            price: parseFloat(newTicket.price),
+            description: newTicket.event,
+            eventDate: new Date().toISOString(),
+            venue: "Sample Venue",
+            availableTickets: 100,
+            organizer: "Sample Organizer",
+            price: [parseFloat(newTicket.price)],
         };
 
         try {
@@ -117,17 +134,24 @@ const TicketScreen = () => {
             />
             <Text style={styles.header}>Buy & Sell Event Tickets</Text>
             <FlatList
-                data={ticketTypes.filter(ticket => ticket.event.toLowerCase().includes(searchQuery.toLowerCase()))}
+                data={ticketTypes.filter(ticket => ticket.description.toLowerCase().includes(searchQuery.toLowerCase()))}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => (
                     <LinearGradient colors={["#00c6ff", "#0072ff"]} style={styles.ticketCard}>
                         <View style={styles.ticketInfo}>
                             <Text style={styles.ticketType}>{item.type} Ticket</Text>
-                            <Text style={styles.ticketEvent}>{item.event}</Text>
-                            <Text style={styles.ticketPrice}>${item.price}</Text>
+                            <Text style={styles.ticketDescription}>{item.description}</Text>
+                            <Text style={styles.ticketEventDate}>{item.eventDate}</Text>
+                            <Text style={styles.ticketVenue}>{item.venue}</Text>
+                            <Text style={styles.ticketAvailableTickets}>Available Tickets: {item.availableTickets}</Text>
+                            <Text style={styles.ticketOrganizer}>Organizer: {item.organizer}</Text>
+                            <Text style={styles.ticketPrice}>Price: ${item.price[0]}</Text>
                         </View>
                         <TouchableOpacity onPress={() => addToCart(item)} style={styles.addButton}>
                             <MaterialIcons name="add-shopping-cart" size={24} color="#fff" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={() => setCheckoutVisible(true)} style={styles.buyButton}>
+                            <Text style={styles.buyButtonText}>Buy Now</Text>
                         </TouchableOpacity>
                     </LinearGradient>
                 )}
@@ -220,7 +244,23 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginVertical: 10,
     },
-    ticketEvent: {
+    ticketDescription: {
+        fontSize: 14,
+        color: "#e0e0e0",
+    },
+    ticketEventDate: {
+        fontSize: 14,
+        color: "#e0e0e0",
+    },
+    ticketVenue: {
+        fontSize: 14,
+        color: "#e0e0e0",
+    },
+    ticketAvailableTickets: {
+        fontSize: 14,
+        color: "#e0e0e0",
+    },
+    ticketOrganizer: {
         fontSize: 14,
         color: "#e0e0e0",
     },
@@ -315,7 +355,12 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 8,
     },
-    addButtonText: {
+    buyButton: {
+        backgroundColor: "#4CAF50",
+        padding: 10,
+        borderRadius: 8,
+    },
+    buyButtonText: {
         color: "#fff",
         fontWeight: "bold",
         fontSize: 16,

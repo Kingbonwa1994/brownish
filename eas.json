@@ -1,16 +1,32 @@
 {
-    "build": {
-      "development": {
-        "android": {
-          "buildType": "apk"
-        }
+  "build": {
+    "development": {
+      "env": {
+        "API_URL": "https://dev.api.example.com",
+        "DEBUG": "true"
       },
-      "production": {
-        "android": {
-          "buildType": "apk" 
-        }
-        
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "env": {
+        "DEBUG": "false",
+        "EXPO_PUBLIC_APPWRITE_API_ENDPOINT": "https://cloud.appwrite.io/v1",
+        "EXPO_PUBLIC_APPWRITE_PROJECT_ID": "67a49b34000fad1cea58",
+        "EXPO_PUBLIC_APPWRITE_DATABASE_ID": "67a49c96003ba26ce4b0",
+        "EXPO_PUBLIC_APPWRITE_USERS_COLLECTION_ID": "67a49e960006dcf97b4c",
+        "EXPO_PUBLIC_APPWRITE_ARTISTS_COLLECTION_ID": "67a4a21a002961476ac0",
+        "EXPO_PUBLIC_APPWRITE_STAKEHOLDERS_COLLECTION_ID": "67a4a3f3002f51dabed8",
+        "EXPO_PUBLIC_APPWRITE_TICKETS_COLLECTIONS_ID": "67adfa0300255a622a59",
+        "EXPO_PUBLIC_APPWRITE_BUCKET_ID": "67ac81130027cd0011b5",
+        "EXPO_PUBLIC_APPWRITE_BUNDLE_ID": "com.bonwamdluli.nortappza",
+        "PAYPAL_CLIENT_ID": "AXDxvYnlSNwLj1EhW9Is_HRYzSgL6UGgjx48lZ34-bV-MF7gnG2QlMCPT1lGk6eXjOAOq2Wf4VLQBu2D",
+        "PAYPAL_CLIENT_SECRET": "ELMVt_pqE7LtPdnZeBiAwdRxiY62sZvgneZDkbRq6tyrT8I27_TyHi3vCmD_j_sFuwM53e6bEbk0N3bG"
+      },
+      "android": {
+        "buildType": "apk"
       }
     }
-    
   }
+}
