@@ -6,6 +6,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEvent } from 'expo';
 import { Query } from 'react-native-appwrite';
 import { Ionicons, FontAwesome, MaterialIcons } from '@expo/vector-icons'; // For icons
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { height, width } = Dimensions.get('window');
 const ITEM_HEIGHT = height;
@@ -28,6 +29,7 @@ const VideoReelItem: React.FC<{ videoUrl: string; isActive: boolean }> = ({ vide
   const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
 
   return (
+    <SafeAreaView>
     <View style={styles.reelContentContainer}>
       <VideoView style={styles.reelVideo} player={player} allowsFullscreen allowsPictureInPicture />
       
@@ -55,6 +57,7 @@ const VideoReelItem: React.FC<{ videoUrl: string; isActive: boolean }> = ({ vide
         </TouchableOpacity>
       </View>
     </View>
+    </SafeAreaView>
   );
 };
 

@@ -1,10 +1,14 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import MediaUploader from "@/components/ui/MediaUploader";
-import * as constants from "@/constants/appConstants";
-import appwriteDataBase from "@/services/appwrite/appwriteDataBase";
-import appwriteStorage from "@/services/appwrite/appwriteStorage";
+
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AppwriteClientFactory } from "@/services/appwrite/appwriteClient"
+import { ID } from "react-native-appwrite";
+import  appwriteStorageService  from "@/services/appwrite/appwriteStorage";
+//import expo document picker
+import * as DocumentPicker from "expo-document-picker"
+
 
 interface RadioStation {
     $id: string;
@@ -14,11 +18,17 @@ interface RadioStation {
 }
 
 interface SubmitScreenProps {
-    isSubscribed: boolean; // Prop to indicate subscription status
+    isSubscribed: boolean;
 }
 
+const databases = AppwriteClientFactory.getInstance().database
+
+const pickAndUploadMedia = appwriteStorageService.pickAndUploadMedia
+
+
+
 const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
-    const [email, setEmail] = useState("");
+
     const [artistName, setArtistName] = useState("");
     const [trackTitle, setTrackTitle] = useState("");
     const [trackInfo, setTrackInfo] = useState(""); 
@@ -37,9 +47,11 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
     const loadRadioStations = useCallback(async () => {
         setIsLoadingStations(true);
         try {
-            const response = await appwriteDataBaseService.listRadioStations();
+            const response = await databases.listDocuments(process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!, 
+                process.env.EXPO_PUBLIC_APPWRITE_RADIOSTATIONS_COLLECTION_ID!
+            );
             if (response && response.documents) {
-                setRadioStations(response.documents as RadioStation[]);
+                setRadioStations(response.documents as unknown as RadioStation[]);
             } else {
                 Alert.alert("Error", "Failed to load radio stations.");
             }
@@ -53,10 +65,10 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
 
     const handleAvatarUpload = useCallback(async () => {
         try {
-            const fileUrl = await appwriteStorageService.pickAndUploadMedia(constants.ALBUM_COVERS_BUCKET_ID);
+            const fileUrl = await pickAndUploadMedia(process.env.EXPO_PUBLIC_APPWRITE_ALBUM_COVERS_BUCKET_ID!, "image");
             if (fileUrl) {
-                setAvatarUrl(fileUrl.href);
-                console.log("Avatar URL set:", fileUrl.href);
+                setAvatarUrl(fileUrl.toString());
+                console.log("Avatar URL set:", fileUrl.toString());
                 Alert.alert("Upload Successful", "Avatar uploaded successfully!");
             } else {
                 console.log("Avatar upload cancelled by user.");
@@ -69,33 +81,61 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
 
     const handleTrackUpload = useCallback(async () => {
         try {
-            const fileUrl = await appwriteStorageService.pickAndUploadMedia(constants.MUSIC_TRACKS_BUCKET_ID);
-            if (fileUrl) {
-                setTrackUrl(fileUrl.href);
-                console.log("Track URL set:", fileUrl.href);
-                Alert.alert("Upload Successful", "Track uploaded successfully!");
-            } else {
-                console.log("Track upload cancelled by user.");
-            }
+          const pickerResult = await DocumentPicker.getDocumentAsync({
+            type: "audio/*",
+          });
+      
+          // Check if the file picking was cancelled
+          if (pickerResult.canceled) {
+            console.log("File picking cancelled by user.");
+            return;
+          }
+      
+          // Access the selected file data. Depending on the returned shape,
+          // you may get the file info in 'assets', 'output', or directly on the result.
+       
+          // Destructure file info from the selected asset
+          const  uri  = pickerResult.assets[0].uri;
+          const name = pickerResult.assets[0].name;
+          // If mimeType is not provided, you can infer it from the file name extension
+          const mimeType = pickerResult.assets[0].mimeType
+      
+          // Prepare the native file (which converts to base64 if needed)
+          const fileData = await appwriteStorageService.prepareNativeFile({ uri, name, mimeType });
+      
+          // Upload the file to Appwrite
+          const fileUrl = await appwriteStorageService.uploadMediaFile(
+            process.env.EXPO_PUBLIC_APPWRITE_MUSIC_TRACKS_BUCKET_ID!,
+            fileData
+          );
+      
+          if (fileUrl) {
+            setTrackUrl(fileUrl.toString());
+            console.log("Track URL set:", fileUrl.toString());
+            Alert.alert("Upload Successful", "Track uploaded successfully!");
+          } else {
+            console.log("No track selected or the file is invalid. Please choose a valid audio file.");
+          }
         } catch (error) {
-            console.error("Track upload error:", error);
-            Alert.alert("Upload Failed", "Failed to upload track.");
+          console.error("Track upload error:", error);
+          Alert.alert("Upload Failed", "Failed to upload track.");
         }
-    }, []);
+      }, []);
 
-
-    const toggleRadioStationSelection = useCallback((stationId: string) => {
+    const toggleRadioStationSelection = useCallback((stationEmail: string) => {
         setSelectedRadioStationIds((prev) =>
-            prev.includes(stationId) ? prev.filter(id => id !== stationId) : [...prev, stationId]
+            prev.includes(stationEmail)
+                ? prev.filter(email => email !== stationEmail)
+                : [...prev, stationEmail]
         );
     }, []);
 
     const handleSubmit = useCallback(async () => {
-        if (!isSubscribed) {
-            Alert.alert("Subscription Required", "Stakeholders must subscribe to submit tracks.");
-            return;
-        }
-        if (!trackUrl || !artistName || !trackTitle || !email || !avatarUrl || selectedRadioStationIds.length === 0) {
+        // if (!isSubscribed) {
+        //     Alert.alert("Subscription Required", "Stakeholders must subscribe to submit tracks.");
+        //     return;
+        // }
+        if (!trackUrl || !artistName || !trackTitle || !avatarUrl || selectedRadioStationIds.length === 0) {
             Alert.alert("Error", "Please complete all fields, upload track and avatar, and select radio stations.");
             return;
         }
@@ -103,29 +143,38 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
         setIsSubmitting(true);
         try {
             // ** Save submission data to Appwrite Database **
-            await appwriteDataBaseService.createDocument(constants.SUBMISSIONS_COLLECTION_ID, { /* ... submission data ... */ });
+            await databases.createDocument(process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID! ,process.env.EXPO_PUBLIC_APPWRITE_MUSICSUBMISSIONS_COLLECTION_ID!, ID.unique(),
+                { 
+                 artistName,
+                trackTitle,
+                trackInfo,
+                trackUrl,
+                avatarUrl,
+                selectedRadioStationIds
+            }
+        );
     
             // ** After successful database save, trigger the email function **
-            try {
-                // Get email addresses of selected radio stations
-                const selectedStationEmails = radioStations
-                    .filter(station => selectedRadioStationIds.includes(station.$id))
-                    .map(station => station.email);
+            // try {
+            //     // Get email addresses of selected radio stations
+            //     const selectedStationEmails = radioStations
+            //         .filter(station => selectedRadioStationIds.includes(station.$id))
+            //         .map(station => station.email);
     
-                await appwriteFunctionsService.executeSubmitTrackEmailFunction(
-                    selectedStationEmails,
-                    trackTitle,
-                    artistName
-                );
-                console.log("Submission email function triggered successfully.");
-                Alert.alert("Success", "Track submitted and radio stations notified!"); // Update success alert message
-            } catch (emailError) {
-                console.error("Error triggering email function:", emailError);
-                Alert.alert("Submission Partially Successful", "Track submitted, but email notification failed. Please contact support if needed."); // Indicate partial success
-                // Consider logging this emailError more thoroughly for debugging - maybe send to error tracking service
-            }
+            //     await appwriteFunctionsService.executeSubmitTrackEmailFunction(
+            //         selectedStationEmails,
+            //         trackTitle,
+            //         artistName
+            //     );
+            //     console.log("Submission email function triggered successfully.");
+            //     Alert.alert("Success", "Track submitted and radio stations notified!"); // Update success alert message
+            // } catch (emailError) {
+            //     console.error("Error triggering email function:", emailError);
+            //     Alert.alert("Submission Partially Successful", "Track submitted, but email notification failed. Please contact support if needed."); // Indicate partial success
+            //     // Consider logging this emailError more thoroughly for debugging - maybe send to error tracking service
+            // }
             // Reset form after successful submission (whether email function succeeds or fails - consider your UX)
-            setEmail("");
+            
             setArtistName("");
             setTrackTitle("");
             setTrackInfo("");
@@ -139,17 +188,16 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
         } finally {
             setIsSubmitting(false);
         }
-    }, [isSubscribed, trackUrl, artistName, trackTitle, email, avatarUrl, selectedRadioStationIds, radioStations]); // Add radioStations to dependencies (important for email retrieval)
+    }, [isSubscribed, trackUrl, artistName, trackTitle, avatarUrl, selectedRadioStationIds, trackInfo]); // Add radioStations to dependencies (important for email retrieval)
 
     return (
-        <ScrollView style={styles.container}>
+        <SafeAreaView>
+        <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
             <Text style={styles.title}>Submit Your Track</Text>
 
-            <TextInput style={styles.input} placeholder="Your Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
-            <TextInput style={styles.input} placeholder="Artist Name" value={artistName} onChangeText={setArtistName} />
+    <TextInput style={styles.input} placeholder="Artist Name" value={artistName} onChangeText={setArtistName} />
             <TextInput style={styles.input} placeholder="Track Title" value={trackTitle} onChangeText={setTrackTitle} />
-   
-
+            <TextInput style={styles.textArea} placeholder="Track Info" value={trackInfo} onChangeText={setTrackInfo} multiline />
 
             <Text style={styles.label}>Upload Artist Avatar</Text>
             <TouchableOpacity style={styles.uploadButton} onPress={handleAvatarUpload}>
@@ -163,7 +211,6 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
             </TouchableOpacity>
             {trackUrl && <Text style={styles.uploadConfirmation}>Track Uploaded!</Text>}
 
-
             <TouchableOpacity style={styles.collapsibleHeader} onPress={() => setIsCollapsed(!isCollapsed)} disabled={isLoadingStations}>
                 <Text style={styles.label}>Select Radio Stations:</Text>
                 {isLoadingStations ? <Text style={styles.collapseIcon}>Loading...</Text> : <Text style={styles.collapseIcon}>{isCollapsed ? "▼" : "▲"}</Text>}
@@ -173,11 +220,16 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
                     {radioStations.map((station) => (
                         <TouchableOpacity
                             key={station.$id}
-                            style={[styles.radioItem, selectedRadioStationIds.includes(station.$id) && styles.selected]}
-                            onPress={() => toggleRadioStationSelection(station.$id)}
+                            style={[
+                                styles.radioItem,
+                                selectedRadioStationIds.includes(station.email) && styles.selected
+                            ]}
+                            onPress={() => toggleRadioStationSelection(station.email)}
                             disabled={isLoadingStations}
                         >
-                            <Text style={styles.radioText}>{station.name} - {station.frequency}</Text>
+                            <Text style={styles.radioText}>
+                                {station.name} - {station.frequency}
+                            </Text>
                         </TouchableOpacity>
                     ))}
                     {radioStations.length === 0 && !isLoadingStations && <Text style={styles.noStationsText}>No radio stations available.</Text>}
@@ -192,6 +244,7 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
                 <Text style={styles.submitText}>{isSubmitting ? "Submitting..." : "Submit Track"}</Text>
             </TouchableOpacity>
         </ScrollView>
+        </SafeAreaView>
     );
 };
 
@@ -199,7 +252,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 20,
-        backgroundColor: "#121212",
+           
     },
     title: {
         fontSize: 24,
@@ -227,14 +280,14 @@ const styles = StyleSheet.create({
         color: "#e0e0e0",
         height: 80,
     },
-    uploadButton: { // Style not directly used anymore, but kept for potential other buttons
+    uploadButton: {
         backgroundColor: "#42ba96",
         padding: 15,
         borderRadius: 8,
         alignItems: "center",
-        marginBottom: 20, // Not used for MediaUploader button by default
+        marginBottom: 20,
     },
-    uploadText: { // Style not directly used anymore
+    uploadText: {
         color: "#fff",
         fontSize: 16,
         fontWeight: "bold",
@@ -258,12 +311,12 @@ const styles = StyleSheet.create({
     radioText: {
         color: "#e0e0e0",
     },
-    avatar: { // Style not directly used anymore
+    avatar: {
         width: 100,
         height: 100,
         borderRadius: 50,
         alignSelf: "center",
-        marginBottom: 20, // Not used for MediaUploader preview
+        marginBottom: 20,
     },
     submitButton: {
         backgroundColor: "#673ab7",
@@ -288,7 +341,7 @@ const styles = StyleSheet.create({
         color: "#9e9e9e",
     },
     uploadConfirmation: {
-        color: '#42ba96', // Green color for confirmation
+        color: '#42ba96',
         marginTop: 5,
         marginBottom: 10,
         fontStyle: 'italic',

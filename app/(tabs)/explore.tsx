@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Linking, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { FontAwesome5 } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const stakeholders = [
     { id: 1, name: "John Doe", role: "Music Producer", phone: "1234567890" },
@@ -20,6 +21,7 @@ const ExploreScreen = ({ isSubscribed }: { isSubscribed: boolean }) => {
     };
 
     return (
+        <SafeAreaView>
         <ScrollView style={styles.container}>
             <Text style={styles.title}>Connect with Industry Stakeholders</Text>
             {stakeholders.map((stakeholder) => (
@@ -40,6 +42,7 @@ const ExploreScreen = ({ isSubscribed }: { isSubscribed: boolean }) => {
                 </TouchableOpacity>
             )}
         </ScrollView>
+        </SafeAreaView>
     );
 };
 

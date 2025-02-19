@@ -1,105 +1,142 @@
-import { ID, } from 'react-native-appwrite'; 
-import { Platform } from 'react-native';
-import * as ImagePicker from 'expo-image-picker'; 
-import { AppwriteClientFactory } from '@/services/appwrite/appwriteClient'; 
+import { ID } from "react-native-appwrite";
+import { Platform } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import { AppwriteClientFactory } from "@/services/appwrite/appwriteClient";
+import * as FileSystem from "expo-file-system";
 
-const storage = AppwriteClientFactory.getInstance().storage; 
+const storage = AppwriteClientFactory.getInstance().storage;
 
-
-const prepareNativeFile = async (asset: { uri: string | URL; fileSize: any; mimeType: any; }) => { // Keep prepareNativeFile within this module
-    console.log("[prepareNativeFile] asset ==>", asset);
-    try {
-        const url = new URL(asset.uri);
-        // Handle native file preparation
-        return {
-            name: url.pathname.split("/").pop()!,
-            size: asset.fileSize,
-            type: asset.mimeType,
-            uri: url.href,
-        };
-    } catch (error) {
-        console.error("[prepareNativeFile] error ==>", error);
-        return Promise.reject(error);
+const inferMimeType = (fileName?: string): string => {
+    if (!fileName) return "application/octet-stream";
+    const ext = fileName.split(".").pop()?.toLowerCase();
+    switch (ext) {
+        case "mp3":
+            return "audio/mpeg";
+        case "wav":
+            return "audio/wav";
+        case "aac":
+            return "audio/aac";
+        case "flac":
+            return "audio/flac";
+        default:
+            return "audio/*";
     }
 };
 
+const prepareNativeFile = async (asset: {
+    uri: string;
+    mimeType?: string;
+    name?: string;
+}) => {
+    // On web, avoid calling expo-file-system methods
+    if (Platform.OS === "web") {
+        return asset;
+    }
 
-const uploadMedia = async (bucketId: string, asset: ImagePicker.ImagePickerAsset) => { // Modified to take bucketId and ImagePickerAsset
+    const fileInfo = await FileSystem.getInfoAsync(asset.uri);
+    if (!fileInfo.exists) {
+        throw new Error("File does not exist at the provided URI.");
+    }
+
+    const base64Data = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.Base64 });
+    return {
+        uri: asset.uri,
+        name: asset.name ?? asset.uri.split("/").pop(),
+        type: asset.mimeType ?? "application/octet-stream",
+        size: fileInfo.size,
+        base64: base64Data,
+    };
+};
+
+const uploadMedia = async (
+    bucketId: string,
+    asset: { uri: string; mimeType?: string; name?: string; }
+) => {
     try {
-        if (!asset.uri) {
-            throw new Error("No file selected in asset");
-        }
-        if (!bucketId) {
-            throw new Error("Bucket ID is required for uploadMedia"); // Added bucketId check
+        if (!asset.uri) throw new Error("No file selected in asset");
+        if (!bucketId) throw new Error("Bucket ID is required for uploadMedia");
+
+        let fileData;
+        if (Platform.OS === "web") {
+            // On web: fetch the asset and create a File object directly.
+            const response = await fetch(asset.uri);
+            const blob = await response.blob();
+            const fileName = asset.name || asset.uri.split("/").pop();
+            fileData = new File([blob], fileName!, {
+                type: asset.mimeType || blob.type || "application/octet-stream",
+            });
+        } else {
+            // On native platforms use the expo-file-system based file prep
+            fileData = await prepareNativeFile(asset);
         }
 
-        const fileData = Platform.OS === "web" ? asset.file : await prepareNativeFile({
-            uri: asset.uri,
-            fileSize: asset.fileSize,
-            mimeType: asset.mimeType,
-        });
-
-        const response = await storage.createFile(
-            bucketId, // Use bucketId parameter
+        const responseFromUpload = await storage.createFile(
+            bucketId,
             ID.unique(),
-            // @ts-ignore  (Typescript issue with react-native-appwrite SDK and File type)
+            // @ts-ignore
             fileData
         );
-        console.log("[file uploaded] ==>", response);
 
-        const fileUrl = storage.getFileView(
-            bucketId, // Use bucketId parameter
-            response.$id // fileId
-        );
-        console.log("[file view url] ==>", fileUrl); // Log view URL for debugging - you might want to return this directly
+        console.log("[file uploaded] ==>", responseFromUpload);
 
-        return fileUrl; // Return the fileView URL (or just fileId if you prefer URLs to be constructed in components)
+        const fileUrl = storage.getFileView(bucketId, responseFromUpload.$id);
+        console.log("[file view url] ==>", fileUrl);
 
+        return fileUrl;
     } catch (error) {
-        console.error("[uploadMediaFile] error ==>", error); // Keep original error log message for consistency with other service functions
-        throw error; // Re-throw to handle errors in components
+        console.error("[uploadMediaFile] error ==>", error);
+        throw error;
     }
 };
 
-
-const pickAndUploadMedia = async (bucketId: string) => { // Modified to take bucketId
+const pickAndUploadMedia = async (
+    bucketId: string,
+    mediaType: "image" | "video" | "audio" | "document"
+) => {
     try {
-        let pickerResult = await ImagePicker.launchImageLibraryAsync({
-            // eslint-disable-next-line import/namespace
-            mediaTypes: ImagePicker.MediaTypeOptions.All, // Allows both images and videos
-            allowsEditing: true,
-            aspect: [4, 3], // Optional, adjust as needed
-            quality: 1, // Optional, adjust as needed
-        });
-
-        if (!pickerResult.canceled) {
-            try {
-                // Ensure pickerResult.assets is not undefined and has at least one asset
-                if (pickerResult.assets && pickerResult.assets.length > 0) {
-                    const uploadResult = await uploadMedia(bucketId, pickerResult.assets[0]); // Pass bucketId and asset to uploadMedia
-                    console.log("Upload successful! URL:", uploadResult);
-                    return uploadResult; // Return the URL so the caller can use it
-                } else {
-                    console.warn("No assets returned from image picker, but not cancelled."); // Log a warning, might be unexpected
-                    return null; // Or handle as appropriate for your app - maybe throw error instead?
-                }
-
-            } catch (e) {
-                console.error("Upload failed in pickAndUploadMedia:", e);
-                throw e; // Re-throw the error for handling by the caller
-            }
+        let pickerResult;
+        let asset;
+        if (mediaType === "audio") {
+            pickerResult = await DocumentPicker.getDocumentAsync({
+                type: "audio/*",
+            });
+            if (!("uri" in pickerResult)) return null;
+            const result = pickerResult as unknown as { uri: string; size?: number; name: string };
+            asset = {
+                uri: result.uri,
+                name: result.name,
+                mimeType: inferMimeType(result.name),
+            };
+        } else {
+            pickerResult = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes:
+                    mediaType === "image"
+                        ? ImagePicker.MediaTypeOptions.Images
+                        : mediaType === "video"
+                        ? ImagePicker.MediaTypeOptions.Videos
+                        : ImagePicker.MediaTypeOptions.All,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 1,
+            });
+            if (pickerResult.canceled) return null;
+            asset = pickerResult.assets[0];
         }
-        return null; // Return null if the user cancels the picker
-    } catch (pickerError) {
-        console.error("Error in pickAndUploadMedia:", pickerError); // Catch errors from ImagePicker.launchImageLibraryAsync
-        throw pickerError; // Re-throw picker errors as well
+        const uploadResult = await uploadMedia(bucketId, asset);
+        console.log(`Upload successful! ${mediaType} URL:`, uploadResult);
+        return uploadResult;
+    } catch (error) {
+        console.error("Error in pickAndUploadMedia:", error);
+        throw error;
     }
 };
 
-
-const appwriteStorageService = { // Update the exported service object
-    uploadMediaFile: uploadMedia, // Use the refactored uploadMedia as uploadMediaFile
-    getFileView: async (bucketId: any, fileId: any) => { // Keep getFileView if you need to fetch URLs separately sometimes
+const appwriteStorageService = {
+    uploadMediaFile: uploadMedia,
+    pickAndUploadMedia,
+    prepareNativeFile,
+    getFileView: async (bucketId: any, fileId: any) => {
         try {
             return storage.getFileView(bucketId, fileId);
         } catch (error) {
@@ -115,7 +152,6 @@ const appwriteStorageService = { // Update the exported service object
             throw error;
         }
     },
-    pickAndUploadMedia: pickAndUploadMedia, // Export pickAndUploadMedia function
 };
 
 export default appwriteStorageService;

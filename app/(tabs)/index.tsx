@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { VideoPlayer } from 'expo-video'
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 // Types for list items
 type ListItem = {
@@ -176,6 +177,7 @@ const HomeScreen: React.FC = () => {
   );
 
   return (
+    <SafeAreaView>
     <ScrollView style={styles.container}>
       {/* Hero Section */}
       <ImageBackground
@@ -305,6 +307,7 @@ const HomeScreen: React.FC = () => {
         />
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 };
 
