@@ -28,41 +28,49 @@ const VideoReelItem: React.FC<{ videoUrl: string; isActive: boolean }> = ({ vide
 
   const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
 
+  useEffect(() => {
+    if (isActive) {
+      player.play();
+    } else {
+      player.pause();
+    }
+  }, [isActive, player]);
+
   return (
     <SafeAreaView>
-    <View style={styles.reelContentContainer}>
-      <VideoView style={styles.reelVideo} player={player} allowsFullscreen allowsPictureInPicture />
-      
-      {/* Centered play/pause control */}
-      <TouchableOpacity
-        style={styles.centeredPlayButton}
-        onPress={() => (isPlaying ? player.pause() : player.play())}
-      >
-        <Ionicons name={isPlaying ? 'pause-circle' : 'play-circle'} size={60} color="#fff" />
-      </TouchableOpacity>
+      <View style={styles.reelContentContainer}>
+        <VideoView style={styles.reelVideo} player={player} allowsFullscreen allowsPictureInPicture />
 
-      {/* Vertical right-hand side controls */}
-      <View style={styles.verticalControls}>
-        <TouchableOpacity style={styles.controlButton}>
-          <FontAwesome name="heart" size={30} color="#fff" />
-          <Text style={styles.controlText}>Like</Text>
+        {/* Centered play/pause control */}
+        <TouchableOpacity
+          style={styles.centeredPlayButton}
+          onPress={() => (isPlaying ? player.pause() : player.play())}
+        >
+          <Ionicons name={isPlaying ? 'pause-circle' : 'play-circle'} size={40} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.controlButton}>
-          <FontAwesome name="comment" size={30} color="#fff" />
-          <Text style={styles.controlText}>Comment</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.controlButton}>
-          <FontAwesome name="share" size={30} color="#fff" />
-          <Text style={styles.controlText}>Share</Text>
-        </TouchableOpacity>
+
+        {/* Vertical right-hand side controls */}
+        <View style={styles.verticalControls}>
+          <TouchableOpacity style={styles.controlButton}>
+            <FontAwesome name="heart" size={24} color="#fff" />
+            <Text style={styles.controlText}>Like</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlButton}>
+            <FontAwesome name="comment" size={24} color="#fff" />
+            <Text style={styles.controlText}>Comment</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.controlButton}>
+            <FontAwesome name="share" size={24} color="#fff" />
+            <Text style={styles.controlText}>Share</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
     </SafeAreaView>
   );
 };
 
 const Reels: React.FC = () => {
-  const bucketId = process.env.EXPO_PUBLIC_APPWRITE_BUCKET_ID!;
+  const bucketId = process.env.EXPO_PUBLIC_APPWRITE_SUBMITTED_REELS_BUCKET_ID!;
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [page, setPage] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -118,18 +126,17 @@ const Reels: React.FC = () => {
         <View style={styles.headerLeft}>
           <Text style={styles.title}>Behind_The_Scenes</Text>
           <View style={styles.socialIconsContainer}>
-            <Ionicons name="logo-youtube" size={24} color="#FF0000" style={styles.socialIcon} />
-            <FontAwesome name="spotify" size={24} color="#1DB954" style={styles.socialIcon} />
-            <Ionicons name="logo-instagram" size={24} color="#C13584" style={styles.socialIcon} />
-            <FontAwesome name="twitter" size={24} color="#fff" style={styles.socialIcon} />
+            <Ionicons name="logo-youtube" size={20} color="#FF0000" style={styles.socialIcon} />
+            <FontAwesome name="spotify" size={20} color="#1DB954" style={styles.socialIcon} />
+            <Ionicons name="logo-instagram" size={20} color="#C13584" style={styles.socialIcon} />
+            <FontAwesome name="twitter" size={20} color="#fff" style={styles.socialIcon} />
           </View>
         </View>
         <View style={styles.searchContainer}>
-         
-          <MaterialIcons name="search" size={24} color="#fff" />
+          <MaterialIcons name="search" size={20} color="#fff" />
         </View>
       </View>
-      
+
       <FlatList
         data={videos}
         keyExtractor={(item) => item.id}
@@ -145,19 +152,18 @@ const Reels: React.FC = () => {
       />
 
       {/* Advertise button at the bottom */}
-    
-        <TouchableOpacity
-          style={styles.advertiseButton}
-          onPress={async () => {
-            try {
-              const fileUrl = await MediaUploader.pickAndUploadMedia(bucketId);
-              handleMediaUploaded(fileUrl as string, 'video');
-            } catch (error) {
-              console.error('Error uploading media:', error);
-            }
-          }}>
-          <Text style={styles.advertiseButtonText}>Advertise</Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.advertiseButton}
+        onPress={async () => {
+          try {
+            const fileUrl = await MediaUploader.pickAndUploadMedia(bucketId, "video");
+            handleMediaUploaded(fileUrl as string, 'video');
+          } catch (error) {
+            console.error('Error uploading media:', error);
+          }
+        }}>
+        <Text style={styles.advertiseButtonText}>Advertise</Text>
+      </TouchableOpacity>
     </View>
   );
 };

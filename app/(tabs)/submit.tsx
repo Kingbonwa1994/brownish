@@ -39,6 +39,8 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
     const [radioStations, setRadioStations] = useState<RadioStation[]>([]);
     const [isLoadingStations, setIsLoadingStations] = useState(false); 
     const [isSubmitting, setIsSubmitting] = useState(false); 
+    const [selectionMessage, setSelectionMessage] = useState("");
+
 
     useEffect(() => {
         loadRadioStations();
@@ -122,13 +124,24 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
         }
       }, []);
 
-    const toggleRadioStationSelection = useCallback((stationEmail: string) => {
-        setSelectedRadioStationIds((prev) =>
-            prev.includes(stationEmail)
+      const toggleRadioStationSelection = useCallback((stationEmail: string) => {
+        setSelectedRadioStationIds((prev) => {
+            const newSelection = prev.includes(stationEmail)
                 ? prev.filter(email => email !== stationEmail)
-                : [...prev, stationEmail]
-        );
+                : [...prev, stationEmail];
+            setSelectionMessage("Radio station selection updated successfully!");
+            return newSelection;
+        });
     }, []);
+
+    useEffect(() => {
+        if (selectionMessage) {
+            const timer = setTimeout(() => {
+                setSelectionMessage("");
+            }, 2000); // Adjust the duration as desired
+            return () => clearTimeout(timer);
+        }
+    }, [selectionMessage]);
 
     const handleSubmit = useCallback(async () => {
         // if (!isSubscribed) {
@@ -152,6 +165,11 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
                 avatarUrl,
                 selectedRadioStationIds
             }
+        );
+        
+        Alert.alert(
+            "Submission Received", 
+            "Your track was submitted successfully. It is now being sent to the selected radio station emails."
         );
     
             // ** After successful database save, trigger the email function **
@@ -232,8 +250,12 @@ const SubmitScreen: React.FC<SubmitScreenProps> = ({ isSubscribed }) => {
                             </Text>
                         </TouchableOpacity>
                     ))}
-                    {radioStations.length === 0 && !isLoadingStations && <Text style={styles.noStationsText}>No radio stations available.</Text>}
-                </View>
+                  {radioStations.length === 0 && !isLoadingStations && (
+            <Text style={styles.noStationsText}>No radio stations available.</Text>
+        )}
+        {selectionMessage !== "" && (
+            <Text style={styles.successMessage}>{selectionMessage}</Text>
+        )}</View>
             )}
 
             <TouchableOpacity
@@ -260,6 +282,11 @@ const styles = StyleSheet.create({
         textAlign: "center",
         marginBottom: 20,
         color: "#e0e0e0",
+    },
+    successMessage: {
+        color: "#42ba96",
+        textAlign: "center",
+        marginVertical: 10,
     },
     input: {
         backgroundColor: "#202020",

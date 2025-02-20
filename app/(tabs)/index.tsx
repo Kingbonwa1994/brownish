@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Text,
   ScrollView,
@@ -8,11 +8,11 @@ import {
   View,
   FlatList,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { FontAwesome5 } from "@expo/vector-icons";
-import { VideoPlayer } from 'expo-video'
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient"
+import { SafeAreaView } from "react-native-safe-area-context";
+import { AppwriteClientFactory } from "@/services/appwrite/appwriteClient";
 
 // Types for list items
 type ListItem = {
@@ -50,11 +50,6 @@ type MostEngagedStakeholder = ListItem & {
   avatar: string;
 };
 
-type VideoReel = {
-  id: string;
-  videoUrl: string;
-};
-
 type HorizontalListData =
   | TrendingSubmission
   | PopularTicket
@@ -73,70 +68,69 @@ type RenderItemProps<T> = {
 };
 
 const HomeScreen: React.FC = () => {
-  // Placeholder data for horizontal lists
-  const trendingSubmissions: TrendingSubmission[] = [
-    { id: "1", title: "Song A", artist: "Artist X", image: "https://source.unsplash.com/100x100/?music,album" },
-    { id: "2", title: "Song B", artist: "Artist Y", image: "https://source.unsplash.com/100x100/?concert,stage" },
-    { id: "3", title: "Song C", artist: "Artist Z", image: "https://source.unsplash.com/100x100/?guitar,rock" },
-    { id: "4", title: "Song D", artist: "Artist W", image: "https://source.unsplash.com/100x100/?microphone,singing" },
-    { id: "5", title: "Song E", artist: "Artist V", image: "https://source.unsplash.com/100x100/?headphones,melody" },
-    { id: "6", title: "Song F", artist: "Artist U", image: "https://source.unsplash.com/100x100/?music,dj" },
-  ];
-  
-  const popularTickets: PopularTicket[] = [
-    { id: "1", event: "Concert A", date: "Oct 25", image: "https://source.unsplash.com/100x100/?festival,lights" },
-    { id: "2", event: "Festival B", date: "Nov 10", image: "https://source.unsplash.com/100x100/?crowd,party" },
-    { id: "3", event: "Show C", date: "Dec 5", image: "https://source.unsplash.com/100x100/?theater,performance" },
-    { id: "4", event: "Concert D", date: "Jan 15", image: "https://source.unsplash.com/100x100/?music,live" },
-    { id: "5", event: "Festival E", date: "Feb 20", image: "https://source.unsplash.com/100x100/?dance,club" },
-    { id: "6", event: "Show F", date: "Mar 12", image: "https://source.unsplash.com/100x100/?entertainment,show" },
-  ];
-  
-  const popularRadioStations: PopularRadioStation[] = [
-    { id: "1", name: "Station X", logo: "https://source.unsplash.com/100x100/?radio,broadcast" },
-    { id: "2", name: "Station Y", logo: "https://source.unsplash.com/100x100/?microphone,studio" },
-    { id: "3", name: "Station Z", logo: "https://source.unsplash.com/100x100/?headphones,streaming" },
-    { id: "4", name: "Station A", logo: "https://source.unsplash.com/100x100/?sound,waves" },
-    { id: "5", name: "Station B", logo: "https://source.unsplash.com/100x100/?news,radio" },
-    { id: "6", name: "Station C", logo: "https://source.unsplash.com/100x100/?talkshow,media" },
-  ];
-  
-  const featuredReels: FeaturedReel[] = [
-    { id: "1", thumbnail: "https://source.unsplash.com/100x100/?video,editor" },
-    { id: "2", thumbnail: "https://source.unsplash.com/100x100/?cinema,film" },
-    { id: "3", thumbnail: "https://source.unsplash.com/100x100/?camera,production" },
-    { id: "4", thumbnail: "https://source.unsplash.com/100x100/?movie,scene" },
-    { id: "5", thumbnail: "https://source.unsplash.com/100x100/?vlog,content" },
-    { id: "6", thumbnail: "https://source.unsplash.com/100x100/?visuals,creator" },
-  ];
-  
-  const trendingArtists: TrendingArtist[] = [
-    { id: "1", name: "Artist A", image: "https://source.unsplash.com/100x100/?singer,performance" },
-    { id: "2", name: "Artist B", image: "https://source.unsplash.com/100x100/?musician,guitar" },
-    { id: "3", name: "Artist C", image: "https://source.unsplash.com/100x100/?dj,turntable" },
-    { id: "4", name: "Artist D", image: "https://source.unsplash.com/100x100/?band,concert" },
-    { id: "5", name: "Artist E", image: "https://source.unsplash.com/100x100/?rapper,hiphop" },
-    { id: "6", name: "Artist F", image: "https://source.unsplash.com/100x100/?violin,orchestra" },
-  ];
-  
-  const mostEngagedStakeholders: MostEngagedStakeholder[] = [
-    { id: "1", username: "User X", avatar: "https://source.unsplash.com/100x100/?business,person" },
-    { id: "2", username: "User Y", avatar: "https://source.unsplash.com/100x100/?corporate,meeting" },
-    { id: "3", username: "User Z", avatar: "https://source.unsplash.com/100x100/?leader,speech" },
-    { id: "4", username: "User W", avatar: "https://source.unsplash.com/100x100/?entrepreneur,success" },
-    { id: "5", username: "User V", avatar: "https://source.unsplash.com/100x100/?speaker,conference" },
-    { id: "6", username: "User U", avatar: "https://source.unsplash.com/100x100/?networking,team" },
-  ];
-  
-  const videoReels: VideoReel[] = [
-    { id: "1", videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4" },
-    { id: "2", videoUrl: "https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4" },
-    { id: "3", videoUrl: "https://samplelib.com/lib/preview/mp4/sample-5s.mp4" },
-    { id: "4", videoUrl: "https://www.videvo.net/videvo_files/converted/2015_08/preview/People_Outside_Running_05_Videvo.mov720.mp4" },
-    { id: "5", videoUrl: "https://filesamples.com/samples/video/mp4/sample_1280x720.mp4" },
-    { id: "6", videoUrl: "https://www.videezy.com/download/46163?download-key=20648a77692b6e9b53e12fd75d1d7a20" },
-  ];
-  
+  const [trendingSubmissions, setTrendingSubmissions] = useState<TrendingSubmission[]>([]);
+  const [trendingArtists, setTrendingArtists] = useState<TrendingArtist[]>([]);
+  const [mostEngagedStakeholders, setMostEngagedStakeholders] = useState<MostEngagedStakeholder[]>([]);
+  const [featuredReels, setFeaturedReels] = useState<FeaturedReel[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const database = AppwriteClientFactory.getInstance().database;
+        const dbId = process.env.EXPO_PUBLIC_APPWRITE_DATABASE_ID!;
+        const musicSubmissionsColId = process.env.EXPO_PUBLIC_APPWRITE_MUSICSUBMISSIONS_COLLECTION_ID!;
+        const artistsColId = process.env.EXPO_PUBLIC_APPWRITE_ARTISTS_COLLECTION_ID!;
+        const stakeholdersColId = process.env.EXPO_PUBLIC_APPWRITE_STAKEHOLDERS_COLLECTION_ID!;
+        const reelsColId = process.env.EXPO_PUBLIC_APPWRITE_SUBMITTED_REELS_URLS_COLLECTION_ID!;
+
+        const [
+          musicSubmissionsRes,
+          artistsRes,
+          stakeholdersRes,
+          reelsRes
+        ] = await Promise.all([
+          database.listDocuments(dbId, musicSubmissionsColId),
+          database.listDocuments(dbId, artistsColId),
+          database.listDocuments(dbId, stakeholdersColId),
+          database.listDocuments(dbId, reelsColId)
+        ]);
+
+        // Map documents into our expected types. Adjust field names as necessary.
+        const submissions = musicSubmissionsRes.documents.map((doc: any) => ({
+          id: doc.$id,
+          title: doc.title,
+          artist: doc.artist,
+          image: doc.image,
+        }));
+        const artists = artistsRes.documents.map((doc: any) => ({
+          id: doc.$id,
+          name: doc.name,
+          image: doc.image,
+        }));
+        const stakeholders = stakeholdersRes.documents.map((doc: any) => ({
+          id: doc.$id,
+          username: doc.username,
+          avatar: doc.avatar,
+        }));
+        const reels = reelsRes.documents.map((doc: any) => ({
+          id: doc.$id,
+          thumbnail: doc.thumbnail,
+        }));
+
+        setTrendingSubmissions(submissions);
+        setTrendingArtists(artists);
+        setMostEngagedStakeholders(stakeholders);
+        setFeaturedReels(reels);
+      } catch (error) {
+        console.error("Error fetching home data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Array of predefined colors
   const colors = ["#FF6F61", "#6B5B95", "#88B04B", "#F7CAC9", "#45677A", "#FAC05E"];
@@ -176,6 +170,14 @@ const HomeScreen: React.FC = () => {
     </TouchableOpacity>
   );
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loaderContainer}>
+        <ActivityIndicator size="large" color="#ffffff" />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView>
     <ScrollView style={styles.container}>
@@ -213,65 +215,6 @@ const HomeScreen: React.FC = () => {
       </View>
 
       <View style={styles.listContainer}>
-        <Text style={styles.listTitle}>Popular Tickets</Text>
-        <FlatList
-          horizontal
-          data={popularTickets}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) =>
-            renderItem<PopularTicket>({
-              item,
-              imageKey: "image",
-              titleKey: "event",
-              subtitleKey: "date",
-            })
-          }
-        />
-      </View>
-
-      <View style={styles.listContainer}>
-        <Text style={styles.listTitle}>Popular Radio Stations</Text>
-        <FlatList
-          horizontal
-          data={popularRadioStations}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) =>
-            renderItem<PopularRadioStation>({
-              item,
-              imageKey: "logo",
-              titleKey: "name",
-              isRoundCard: true,
-            })
-          }
-        />
-      </View>
-
-      <View style={styles.listContainer}>
-        <Text style={styles.listTitle}>Featured Reels</Text>
-        <FlatList
-          horizontal
-          data={featuredReels}
-          keyExtractor={(item) => item.id}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.listItem}>
-              <ImageBackground
-                source={{ uri: item.thumbnail }}
-                style={styles.itemImage}
-                imageStyle={{ borderRadius: 8 }}
-              >
-                <View style={styles.playIcon}>
-                  <FontAwesome5 name="play" size={20} color="#fff" />
-                </View>
-              </ImageBackground>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      <View style={styles.listContainer}>
         <Text style={styles.listTitle}>Trending Artists</Text>
         <FlatList
           horizontal
@@ -302,6 +245,23 @@ const HomeScreen: React.FC = () => {
               imageKey: "avatar",
               titleKey: "username",
               isRoundCard: true,
+            })
+          }
+        />
+      </View>
+
+      <View style={styles.listContainer}>
+        <Text style={styles.listTitle}>Featured Reels</Text>
+        <FlatList
+          horizontal
+          data={featuredReels}
+          keyExtractor={(item) => item.id}
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) =>
+            renderItem<FeaturedReel>({
+              item,
+              imageKey: "thumbnail",
+              titleKey: "thumbnail",
             })
           }
         />
@@ -395,5 +355,11 @@ const styles = StyleSheet.create({
     top: "50%",
     left: "50%",
     transform: [{ translateX: -10 }, { translateY: -10 }],
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#121212",
   },
 });
